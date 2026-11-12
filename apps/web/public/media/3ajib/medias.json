@@ -1,5 +1,15 @@
 {
-  "sons": {},
+  "sons": {
+    "dice": "sons/des.mp3",
+    "coinIn": "sons/argent-recu.mp3",
+    "coinOut": "sons/argent-paye.mp3",
+    "buy": "sons/achat.mp3",
+    "card": "sons/carte.mp3",
+    "jail": "sons/prison.mp3",
+    "build": "sons/construction.mp3",
+    "bankrupt": "sons/faillite.mp3",
+    "cases": {}
+  },
   "images": {
     "cases": {},
     "chance": {},

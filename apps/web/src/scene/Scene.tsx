@@ -6,6 +6,7 @@ import { createGame, themeById } from "@monopoly/engine";
 import type { GameState } from "@monopoly/engine";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { Board } from "./Board";
+import { FxLayer } from "./Fx";
 import { CameraIntro, NightLights, Table } from "./World";
 import { Buildings, Dice, Pawns } from "./Pieces";
 import { useGame } from "../store";
@@ -94,6 +95,7 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
       <Buildings game={game} />
       <Pawns game={game} />
       <Dice />
+      <FxLayer />
       {effects && (
         <EffectComposer multisampling={4}>
           <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.75} />

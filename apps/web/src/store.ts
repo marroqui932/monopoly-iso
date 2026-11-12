@@ -16,6 +16,7 @@ import { anim, nowSec, playEvents } from "./anim";
 import { buildFeedback, makeNote, type Note } from "./feedback";
 import { play } from "./sound";
 import { loadMedia } from "./media";
+import { buildFx, useFx } from "./fx";
 import { ClientNet, HostNet, newRoomCode, type HostMsg, type Lobby, type NetStatus, type Profile } from "./net";
 import { PLAYER_COLORS, TOKENS } from "./tokens";
 
@@ -139,6 +140,7 @@ function setUrlRoom(code: string | null) {
 }
 
 function resetAnim(game: GameState | null) {
+  useFx.setState({ list: [] });
   anim.pawns.clear();
   anim.busyUntil = 0;
   if (game?.dice) anim.dice = { a: game.dice.a, b: game.dice.b, rollId: 0, startedAt: -10 };
@@ -164,6 +166,7 @@ export const useGame = create<Store>((set, get) => {
     }
     const { me, mode } = get();
     const fresh = buildFeedback(state, events, timeline, me, mode !== "local");
+    buildFx(state, events, timeline);
     const now = nowSec();
     const notes = [...get().notes.filter((n) => n.showAt > now - 6), ...fresh].slice(-MAX_NOTES);
     set({ game: state, busyUntil: end, card, notes });

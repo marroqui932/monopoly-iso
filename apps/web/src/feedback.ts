@@ -58,6 +58,7 @@ export function buildFeedback(
     switch (e.type) {
       case "diceRolled":
         sound("dice", at);
+        if (e.dice.a === e.dice.b) notes.push(makeNote(`🎲 Double ${e.dice.a} !`, "good", at + 0.9, color(e.player)));
         break;
       case "turnStarted":
         if (you(e.player)) {

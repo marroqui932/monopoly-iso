@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { currentPlayer, netWorth, type GameState } from "@monopoly/engine";
 import { Scene } from "../scene/Scene";
 import { money, useGame, useOffline } from "../store";
@@ -415,8 +415,36 @@ function GameOver({ game }: { game: GameState }) {
   const quit = useGame((s) => s.quit);
   const winner = game.players.find((p) => p.id === game.winner);
   const ranking = [...game.players].sort((a, b) => netWorth(game, b.id) - netWorth(game, a.id));
+  const confetti = useMemo(
+    () =>
+      Array.from({ length: 90 }, (_, i) => ({
+        left: Math.random() * 100,
+        delay: Math.random() * 2.5,
+        duration: 2.8 + Math.random() * 2.2,
+        color: ["#ffb347", "#ff4f8b", "#3d74ff", "#24c29c", "#fff6e5", winner?.color ?? "#ffd166"][i % 6],
+        size: 6 + Math.random() * 8,
+        tilt: Math.random() * 360,
+      })),
+    [winner?.color],
+  );
   return (
     <div className="modal-bg">
+      <div className="confetti" aria-hidden>
+        {confetti.map((c, i) => (
+          <i
+            key={i}
+            style={{
+              left: `${c.left}%`,
+              background: c.color,
+              width: c.size,
+              height: c.size * 0.45,
+              animationDelay: `${c.delay}s`,
+              animationDuration: `${c.duration}s`,
+              transform: `rotate(${c.tilt}deg)`,
+            }}
+          />
+        ))}
+      </div>
       <div className="panel modal gameover">
         <h2>🏆 {winner ? `${winner.name} gagne !` : "Fin de la partie"}</h2>
         <p style={{ color: "var(--muted)" }}>Raison : {game.endReason}</p>
