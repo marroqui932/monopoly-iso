@@ -3,7 +3,7 @@ import { MIN_PLAYERS } from "@monopoly/engine";
 import { useGame } from "../store";
 import { inviteLink } from "../net";
 import { TOKENS } from "../tokens";
-import { OptionsEditor } from "./Options";
+import { OptionsEditor, ThemePicker } from "./Options";
 
 export function NetBanner() {
   const net = useGame((s) => s.net);
@@ -22,6 +22,7 @@ export function LobbyView() {
   const kick = useGame((s) => s.kick);
   const hostStart = useGame((s) => s.hostStart);
   const setLobbyOptions = useGame((s) => s.setLobbyOptions);
+  const setLobbyTheme = useGame((s) => s.setLobbyTheme);
   const [copied, setCopied] = useState(false);
 
   if (rejected) {
@@ -83,6 +84,7 @@ export function LobbyView() {
                 )}
               </div>
             ))}
+            <ThemePicker value={lobby.themeId} onChange={setLobbyTheme} readOnly={!isHost} />
             <OptionsEditor options={lobby.options} onChange={setLobbyOptions} readOnly={!isHost} />
             <div className="setup-actions">
               <button className="btn" onClick={quit}>

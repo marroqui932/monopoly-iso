@@ -60,6 +60,7 @@ button, input, select { font: inherit; color: inherit; }
 .setup-card { width: min(720px, 100%); padding: 28px; }
 .setup h1 { margin: 0; font-size: 2.2rem; font-weight: 800; color: var(--accent); letter-spacing: 0.02em; }
 .setup .subtitle { color: var(--muted); margin: 4px 0 22px; }
+.setup .subtitle.edition { color: #1d3557; font-weight: 800; font-size: 1.3rem; margin-top: -2px; letter-spacing: 0.02em; }
 .setup h2 { font-size: 1.05rem; margin: 22px 0 10px; }
 .player-row {
   display: grid;

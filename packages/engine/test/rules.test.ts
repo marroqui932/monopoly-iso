@@ -559,3 +559,22 @@ describe("immutabilité", () => {
     expect(JSON.stringify(s)).toBe(before);
   });
 });
+
+describe("plateau 3ajib Edition", () => {
+  it("a les bons noms, et les cartes renvoient vers les bonnes cases", async () => {
+    const { ajibTheme } = await import("../src");
+    expect(ajibTheme.squares).toHaveLength(40);
+    expect(ajibTheme.squares[39]!.name).toBe("Orly");
+    expect(ajibTheme.squares[11]!.name).toBe("Bois de Boulogne");
+    const texts = [...ajibTheme.chance, ...ajibTheme.community].map((c) => c.text).join(" ");
+    for (const old of ["Rue de la Paix", "Villette.", "Henri-Martin", "Gare de Lyon", "Belleville"]) {
+      expect(texts).not.toContain(old);
+    }
+    // Chaque carte « aller à » pointe vers une case qui porte le nom cité.
+    for (const c of [...ajibTheme.chance, ...ajibTheme.community]) {
+      if (c.effect.type === "advanceTo" && c.effect.position !== 0) {
+        expect(c.text).toContain(ajibTheme.squares[c.effect.position]!.name);
+      }
+    }
+  });
+});

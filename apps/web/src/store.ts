@@ -4,7 +4,7 @@ import {
   createGame,
   GameError,
   MAX_PLAYERS,
-  parisTheme,
+  themeById,
   type Action,
   type GameEvent,
   type GameOptions,
@@ -55,7 +55,7 @@ interface Store {
   busyUntil: number;
 
   // Partie locale
-  startGame(players: NewPlayer[], options: Partial<GameOptions>): void;
+  startGame(players: NewPlayer[], options: Partial<GameOptions>, themeId?: string): void;
   resumeSaved(): boolean;
 
   // En ligne
@@ -63,6 +63,7 @@ interface Store {
   resumeHost(): boolean;
   joinRoom(code: string, profile: Profile): void;
   setLobbyOptions(options: Partial<GameOptions>): void;
+  setLobbyTheme(themeId: string): void;
   kick(playerId: PlayerId): void;
   hostStart(): void;
 
@@ -292,9 +293,9 @@ export const useGame = create<Store>((set, get) => {
     tradeOpen: false,
     busyUntil: 0,
 
-    startGame(players, options) {
+    startGame(players, options, themeId) {
       teardownNet();
-      const game = createGame(parisTheme, players, options);
+      const game = createGame(themeById(themeId), players, options);
       resetAnim(game);
       store(LOCAL_SAVE, game);
       set({ mode: "local", me: null, lobby: null, net: null, game, selected: null, card: null, notes: [], tradeOpen: false, busyUntil: 0 });
@@ -359,6 +360,12 @@ export const useGame = create<Store>((set, get) => {
       hostLobbyUpdate({ ...lobby, options });
     },
 
+    setLobbyTheme(themeId) {
+      const lobby = get().lobby;
+      if (get().mode !== "host" || !lobby) return;
+      hostLobbyUpdate({ ...lobby, themeId });
+    },
+
     kick(playerId) {
       const lobby = get().lobby;
       if (get().mode !== "host" || !lobby || get().game) return;
@@ -372,7 +379,7 @@ export const useGame = create<Store>((set, get) => {
       let game: GameState;
       try {
         game = createGame(
-          parisTheme,
+          themeById(lobby.themeId),
           lobby.players.map(({ id, name, color, token }) => ({ id, name, color, token })),
           lobby.options,
         );

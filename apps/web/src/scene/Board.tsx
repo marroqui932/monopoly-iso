@@ -46,7 +46,7 @@ function CenterDecor({ game }: { game: GameState }) {
         MONOPOLY
       </Text>
       <Text font={FONTS.bold} fontSize={0.32} position={[0, 0.03, 1.15]} rotation={FLAT} color="#1d3557" anchorX="center" anchorY="middle">
-        entre potes · {game.theme.name}
+        {game.theme.name}
       </Text>
       {/* Paquets de cartes */}
       <CardPile x={-2.2} z={-2.1} color="#f4a259" label="CHANCE" />
@@ -169,7 +169,7 @@ function EdgeContent({ sq, game }: { sq: Square; game: GameState }) {
       return (
         <>
           <Label text={sq.name.toUpperCase()} z={-0.68} size={0.11} />
-          {sq.name.toLowerCase().includes("eau") ? <Drop /> : <Bulb />}
+          {/total|essence|gaz|station/i.test(sq.name) ? <Pump /> : /eau/i.test(sq.name) ? <Drop /> : <Bulb />}
           <Label text={`${sq.price} ${cur}`} z={0.7} size={0.15} font={FONTS.medium} />
         </>
       );
@@ -338,6 +338,25 @@ function Drop() {
       <mesh position={[0, 0.38, 0]} castShadow>
         <coneGeometry args={[0.13, 0.26, 10]} />
         <meshStandardMaterial color="#4cc9f0" roughness={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
+function Pump() {
+  return (
+    <group position={[0, TOP, 0.05]}>
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <boxGeometry args={[0.26, 0.4, 0.18]} />
+        <meshStandardMaterial color="#e63946" />
+      </mesh>
+      <mesh position={[0, 0.3, 0.095]}>
+        <boxGeometry args={[0.16, 0.1, 0.01]} />
+        <meshStandardMaterial color="#f1faee" />
+      </mesh>
+      <mesh position={[0.17, 0.25, 0]} castShadow>
+        <boxGeometry args={[0.05, 0.22, 0.05]} />
+        <meshStandardMaterial color="#212529" />
       </mesh>
     </group>
   );

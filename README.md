@@ -23,7 +23,8 @@ apps/web          Le jeu dans le navigateur (Vite + React + React Three Fiber)
 - [x] **Étape 6 : sons**, notifications au centre, pions du joueur actif mis en valeur
 - [ ] Étape 7 : sauvegarde / reprise, modes de fin de partie
 - [ ] Étape 8 : mise en ligne sur GitHub Pages
-- [ ] Étape 9 : thème perso entre potes, peaufinage visuel
+- [x] Plateau perso « 3ajib Edition » (cartes perso à venir)
+- [ ] Peaufinage visuel, version téléphone
 
 ## Le moteur (`packages/engine`)
 
@@ -60,7 +61,7 @@ const { state: next, events } = applyAction(state, "id-joueur", { type: "roll" }
 
 ### Créer votre thème entre potes
 
-Copiez `packages/engine/src/themes/paris.ts`, puis changez les noms des cases, les couleurs, les textes et effets des cartes, et la monnaie. Les prix et loyers peuvent aussi être modifiés.
+Le plateau « 3ajib Edition » est dans `packages/engine/src/themes/3ajib.ts` (choisi par défaut). Pour un autre plateau, copiez `paris.ts`, ajoutez-le dans `themes/index.ts`, puis changez les noms des cases, les couleurs, les textes et effets des cartes, et la monnaie. Les prix et loyers peuvent aussi être modifiés.
 
 ## Jouer en local
 

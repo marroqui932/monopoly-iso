@@ -58,6 +58,8 @@ export interface Lobby {
   code: string;
   players: LobbyPlayer[];
   options: Partial<GameOptions>;
+  /** Plateau choisi par l'hôte. */
+  themeId?: string;
 }
 
 const PING_EVERY = 3000;

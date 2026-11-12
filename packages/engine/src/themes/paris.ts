@@ -8,6 +8,7 @@ import type { BoardTheme } from "../types";
  * les 40 cases gardent la même structure, le moteur s'occupe du reste.
  */
 export const parisTheme: BoardTheme = {
+  id: "paris",
   name: "Paris (classique)",
   currency: "€",
   groupColors: {

@@ -3,7 +3,7 @@ import { MAX_PLAYERS, MIN_PLAYERS, type GameOptions } from "@monopoly/engine";
 import { loadHostSave, loadProfile, loadSaved, saveProfile, useGame } from "../store";
 import { normalizeCode, type Profile } from "../net";
 import { PLAYER_COLORS, TOKENS } from "../tokens";
-import { OptionsEditor, ProfileEditor } from "./Options";
+import { OptionsEditor, ProfileEditor, ThemePicker } from "./Options";
 
 const DEFAULT_NAMES = ["Joueur 1", "Joueur 2", "Joueur 3", "Joueur 4", "Joueur 5", "Joueur 6"];
 
@@ -15,7 +15,7 @@ export function Setup() {
     <div className="setup">
       <div className="setup-card panel">
         <h1>MONOPOLY</h1>
-        <p className="subtitle">entre potes · plateau de Paris, règles classiques</p>
+        <p className="subtitle edition">3ajib Edition</p>
         <div className="tabs">
           <button className={`tab ${tab === "online" ? "on" : ""}`} onClick={() => setTab("online")}>
             🌐 En ligne
@@ -114,6 +114,7 @@ function LocalSetup() {
     [0, 1, 2].map((i) => ({ name: DEFAULT_NAMES[i]!, color: PLAYER_COLORS[i]!.value, token: TOKENS[i]!.id })),
   );
   const [options, setOptions] = useState<Partial<GameOptions>>({});
+  const [themeId, setThemeId] = useState<string | undefined>(undefined);
 
   const addPlayer = () => {
     if (rows.length >= MAX_PLAYERS) return;
@@ -126,6 +127,7 @@ function LocalSetup() {
     startGame(
       rows.map((r, i) => ({ id: `j${i + 1}`, name: r.name.trim() || DEFAULT_NAMES[i]!, color: r.color, token: r.token })),
       options,
+      themeId,
     );
 
   return (
@@ -149,6 +151,7 @@ function LocalSetup() {
       <button className="btn small" style={{ marginTop: 10 }} onClick={addPlayer} disabled={rows.length >= MAX_PLAYERS}>
         + Ajouter un joueur
       </button>
+      <ThemePicker value={themeId} onChange={setThemeId} />
       <OptionsEditor options={options} onChange={setOptions} />
       <div className="setup-actions">
         {saved && (

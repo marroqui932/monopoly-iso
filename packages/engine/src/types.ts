@@ -63,7 +63,12 @@ export interface Card {
 }
 
 export interface BoardTheme {
+  /** Identifiant court (choix du plateau). */
+  id: string;
+  /** Titre affiché sous « MONOPOLY ». */
   name: string;
+  /** Nom des groupes de couleur (optionnel), affiché sur les fiches. */
+  groupNames?: Partial<Record<ColorGroup, string>>;
   /** Symbole affiché après les montants, ex. "€" */
   currency: string;
   squares: Square[]; // exactement 40

@@ -80,7 +80,7 @@ export function Deed({ game, position }: { game: GameState; position: number }) 
   return (
     <div className="panel deed">
       <div className="deed-head" style={{ background: headColor }}>
-        <small>Titre de propriété</small>
+        <small>{sq.kind === "street" && game.theme.groupNames?.[sq.group] ? game.theme.groupNames[sq.group] : "Titre de propriété"}</small>
         {sq.name}
         {close}
       </div>

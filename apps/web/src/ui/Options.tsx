@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GameOptions } from "@monopoly/engine";
+import { THEMES, type GameOptions } from "@monopoly/engine";
 import { PLAYER_COLORS, TOKENS } from "../tokens";
 import type { Profile } from "../net";
 
@@ -119,5 +119,23 @@ export function ProfileEditor({
         ))}
       </select>
     </div>
+  );
+}
+
+/** Choix du plateau. */
+export function ThemePicker({ value, onChange, readOnly = false }: { value: string | undefined; onChange: (id: string) => void; readOnly?: boolean }) {
+  const current = value ?? THEMES[0]!.id;
+  return (
+    <>
+      <h2>Plateau</h2>
+      <div className="options">
+        {THEMES.map((t) => (
+          <label key={t.id}>
+            <input type="radio" disabled={readOnly} checked={current === t.id} onChange={() => onChange(t.id)} />
+            {t.name}
+          </label>
+        ))}
+      </div>
+    </>
   );
 }
