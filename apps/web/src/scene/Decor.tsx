@@ -146,7 +146,7 @@ function Building({
 
 function Box({ size, pos, color, rot, extra }: { size: [number, number, number]; pos: [number, number, number]; color: string; rot?: [number, number, number]; extra?: Partial<THREE.MeshStandardMaterialParameters> }) {
   return (
-    <mesh position={pos} rotation={rot} material={mat(color, extra)} castShadow>
+    <mesh position={pos} rotation={rot} material={mat(color, extra)}>
       <boxGeometry args={size} />
     </mesh>
   );
@@ -154,7 +154,7 @@ function Box({ size, pos, color, rot, extra }: { size: [number, number, number];
 
 function Cyl({ r, h, pos, color, seg = 10, rot, r2 }: { r: number; h: number; pos: [number, number, number]; color: string; seg?: number; rot?: [number, number, number]; r2?: number }) {
   return (
-    <mesh position={pos} rotation={rot} material={mat(color)} castShadow>
+    <mesh position={pos} rotation={rot} material={mat(color)}>
       <cylinderGeometry args={[r2 ?? r, r, h, seg]} />
     </mesh>
   );
@@ -162,7 +162,7 @@ function Cyl({ r, h, pos, color, seg = 10, rot, r2 }: { r: number; h: number; po
 
 function Ball({ r, pos, color, extra }: { r: number; pos: [number, number, number]; color: string; extra?: Partial<THREE.MeshStandardMaterialParameters> }) {
   return (
-    <mesh position={pos} material={mat(color, extra)} castShadow>
+    <mesh position={pos} material={mat(color, extra)}>
       <icosahedronGeometry args={[r, 1]} />
     </mesh>
   );

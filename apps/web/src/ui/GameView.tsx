@@ -42,6 +42,7 @@ export function GameView({ game }: { game: GameState }) {
     <div className="game">
       <NetBanner />
       <Scene game={game} quarter={quarter} />
+      <div className="vignette" />
 
       <div className="overlay topbar panel">
         <button className="btn small ghost" title="Tourner le plateau" onClick={() => setQuarter((q) => (q + 3) % 4)}>

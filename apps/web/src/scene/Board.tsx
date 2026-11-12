@@ -1,5 +1,5 @@
 import { Text } from "@react-three/drei";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { GameState, Square } from "@monopoly/engine";
 import { CELL_H, cellLayout, HALF, JAIL_CELL } from "../layout";
 import { useGame } from "../store";
@@ -19,7 +19,14 @@ const CELL_HOVER = "#fff6dd";
 const INK = "#2b2b2b";
 const FLAT: [number, number, number] = [-Math.PI / 2, 0, 0];
 
-export function Board({ game }: { game: GameState }) {
+/** Le plateau ne se redessine que si les propriétés changent (pas à chaque lancer de dés). */
+export const Board = memo(BoardImpl, (a, b) => a.game.theme === b.game.theme && boardKey(a.game) === boardKey(b.game));
+
+function boardKey(g: GameState) {
+  return `${g.theme.id}|${JSON.stringify(g.properties)}|${g.players.map((p) => p.color).join()}`;
+}
+
+function BoardImpl({ game }: { game: GameState }) {
   return (
     <group>
       {/* Socle et cadre doré */}

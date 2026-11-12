@@ -8,8 +8,8 @@
   --night-0: #0d0e24;
   --night-1: #1d1b45;
   --night-2: #2a2860;
-  --glass: rgba(17, 19, 50, 0.8);
-  --glass-strong: rgba(13, 14, 38, 0.92);
+  --glass: rgba(19, 21, 54, 0.93);
+  --glass-strong: rgba(14, 15, 40, 0.96);
   --line: rgba(255, 255, 255, 0.09);
   --text: #f3efe6;
   --muted: #a6a7c8;
@@ -77,8 +77,6 @@ button, input, select { font: inherit; color: inherit; }
 
 .panel {
   background: var(--glass);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
@@ -178,6 +176,13 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
 
 /* ── Jeu ─────────────────────────────────── */
 .game { position: relative; height: 100%; }
+/* Vignettage en CSS (gratuit pour la carte graphique) */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 48%, transparent 58%, rgba(6, 6, 20, 0.55));
+}
 .game canvas { touch-action: none; }
 .overlay { position: absolute; pointer-events: none; }
 .overlay > * { pointer-events: auto; }
@@ -266,7 +271,7 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
 .deed .btn { color: var(--text); }
 
 /* ── Modales ─────────────────────────────── */
-.modal-bg { position: absolute; inset: 0; background: rgba(6, 7, 22, 0.55); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+.modal-bg { position: absolute; inset: 0; background: rgba(6, 7, 22, 0.6); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
 .modal { padding: 24px; width: min(740px, 100%); max-height: 100%; overflow: auto; background: var(--glass-strong); }
 .modal h2 { margin: 0 0 14px; font-family: var(--sign); font-weight: 400; font-size: 1.4rem; }
 

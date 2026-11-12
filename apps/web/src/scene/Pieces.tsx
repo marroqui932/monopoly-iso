@@ -232,7 +232,7 @@ function Pawn({ player, slot, active }: { player: Player; slot: number; active: 
 export function TokenMesh({ token, color }: { token: string; color: string }) {
   // Pions laqués, façon figurines de collection.
   const mat = useMemo(
-    () => new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15 }),
+    () => new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.3 }),
     [color],
   );
   switch (token) {

@@ -1,7 +1,7 @@
-// Décor autour du plateau : la table, et la ville de nuit (tours aux fenêtres allumées).
+// Décor autour du plateau : la table, la lumière de nuit, l'entrée de caméra.
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 export const NIGHT = {
@@ -20,83 +20,6 @@ function rng(seed: number) {
     return s / 233280;
   };
 }
-
-/** Façade de nuit : texture de couleur + carte d'émission (fenêtres allumées). */
-function nightFacade(seed: number) {
-  const r = rng(seed);
-  const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#1b1d38";
-  ctx.fillRect(0, 0, 64, 256);
-  const cols = 5;
-  const rows = 22;
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const v = r();
-      ctx.fillStyle = v < 0.28 ? (v < 0.06 ? "#9fd3ff" : "#ffcf7a") : "#0c0d1c";
-      ctx.fillRect(x * 12.8 + 3, y * 11.6 + 3, 7, 6);
-    }
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  return tex;
-}
-
-/** La ville tout autour : des tours et des barres, comme vues depuis une table près d'une fenêtre. */
-export const Skyline = memo(function Skyline() {
-  const { towers, towerMats } = useMemo(() => {
-    const facades = [11, 23, 37].map(nightFacade);
-    const materials = facades.map(
-      (tex) =>
-        new THREE.MeshStandardMaterial({
-          map: tex,
-          emissiveMap: tex,
-          emissive: new THREE.Color("#ffffff"),
-          emissiveIntensity: 1.1,
-          roughness: 0.9,
-        }),
-    );
-    const roof = new THREE.MeshStandardMaterial({ color: "#14152b", roughness: 1 });
-    const r = rng(7);
-    const towers: { x: number; z: number; w: number; d: number; h: number; m: number; rot: number }[] = [];
-    for (let i = 0; i < 64; i++) {
-      const a = (i / 64) * Math.PI * 2 + r() * 0.05;
-      const dist = 24 + r() * 14;
-      const barre = r() < 0.3;
-      towers.push({
-        x: Math.cos(a) * dist,
-        z: Math.sin(a) * dist,
-        w: barre ? 6 + r() * 4 : 2 + r() * 1.5,
-        d: 2 + r() * 1.2,
-        h: barre ? 4 + r() * 3 : 7 + r() * 11,
-        m: Math.floor(r() * 3),
-        rot: -a + Math.PI / 2,
-      });
-    }
-    const towerMats = towers.map((t) => {
-      const side = materials[t.m]!.clone();
-      side.map = side.map!.clone();
-      side.map.repeat.set(Math.max(1, Math.round(t.w / 2.2)), Math.max(1, t.h / 9));
-      side.map.needsUpdate = true;
-      side.emissiveMap = side.map;
-      return [side, side, roof, roof, side, side];
-    });
-    return { towers, towerMats };
-  }, []);
-
-  return (
-    <group position={[0, -0.5, 0]}>
-      {towers.map((t, i) => (
-        <mesh key={i} position={[t.x, t.h / 2, t.z]} rotation={[0, t.rot, 0]} material={towerMats[i]}>
-          <boxGeometry args={[t.w, t.h, t.d]} />
-        </mesh>
-      ))}
-    </group>
-  );
-});
 
 function woodTexture() {
   const c = document.createElement("canvas");
@@ -143,7 +66,7 @@ export function NightLights({ shadows }: { shadows: boolean }) {
         intensity={2.1}
         color="#ffe2b8"
         castShadow={shadows}
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-11}
         shadow-camera-right={11}
         shadow-camera-top={11}

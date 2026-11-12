@@ -4,9 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { createGame, themeById } from "@monopoly/engine";
 import type { GameState } from "@monopoly/engine";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { Board } from "./Board";
-import { CameraIntro, NightLights, Skyline, Table } from "./World";
+import { CameraIntro, NightLights, Table } from "./World";
 import { Buildings, Dice, Pawns } from "./Pieces";
 import { useGame } from "../store";
 import { setInvalidate } from "../anim";
@@ -57,7 +56,6 @@ const NO_3D = new URLSearchParams(window.location.search).has("sans3d");
 export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
   const view = useSettings((s) => s.view);
   const shadows = useSettings((s) => s.shadows);
-  const effects = useSettings((s) => s.effects);
   const zoom = useZoom(view);
   const select = useGame((s) => s.select);
   const top = view === "top";
@@ -71,7 +69,7 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
       key={shadows ? "ombres" : "sans-ombres"}
       frameloop="demand"
       shadows={shadows}
-      dpr={shadows ? [1, 1.5] : 1}
+      dpr={[1, 1.25]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       onPointerMissed={() => select(null)}
     >
@@ -90,17 +88,10 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
       />
       <NightLights shadows={shadows} />
       <Table />
-      <Skyline />
       <Board game={game} />
       <Buildings game={game} />
       <Pawns game={game} />
       <Dice />
-      {effects && (
-        <EffectComposer multisampling={4}>
-          <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.75} />
-          <Vignette offset={0.3} darkness={0.65} />
-        </EffectComposer>
-      )}
     </Canvas>
   );
 }
@@ -120,7 +111,6 @@ function ShiftView({ ratio }: { ratio: number }) {
 
 /** Plateau qui tourne lentement derrière les menus. */
 export function MenuScene() {
-  const effects = useSettings((s) => s.effects);
   const demo = useMemo(() => {
     const g = createGame(
       themeById(undefined),
@@ -146,22 +136,15 @@ export function MenuScene() {
   }, []);
   if (NO_3D) return null;
   return (
-    <Canvas frameloop="always" dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }} shadows={false}>
+    <Canvas frameloop="always" dpr={1} gl={{ antialias: true, alpha: true }} shadows={false}>
       <OrthographicCamera makeDefault position={camPos(0, "iso")} zoom={Math.min(window.innerWidth * 0.62, window.innerHeight) / 14} near={-100} far={200} />
       <OrbitControls autoRotate autoRotateSpeed={0.35} enableZoom={false} enablePan={false} enableRotate={false} target={[0, 0, 0]} />
       <ShiftView ratio={window.innerWidth >= 1100 ? 0.2 : 0} />
       <NightLights shadows={false} />
       <Table />
-      <Skyline />
       <Board game={demo} />
       <Buildings game={demo} />
       <Pawns game={demo} />
-      {effects && (
-        <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur luminanceThreshold={0.85} intensity={0.7} />
-          <Vignette offset={0.3} darkness={0.7} />
-        </EffectComposer>
-      )}
     </Canvas>
   );
 }
