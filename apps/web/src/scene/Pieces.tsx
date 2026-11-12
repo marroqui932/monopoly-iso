@@ -90,63 +90,30 @@ export function Pawns({ game }: { game: GameState }) {
 
 const RING_Y = CELL_H + 0.012;
 
-/** Anneau sous chaque pion ; le joueur actif a un grand anneau, un faisceau lumineux et une flèche. */
+/** Disque de couleur sous chaque pion ; flèche au-dessus du pion du joueur dont c'est le tour. */
 function Highlight({ color, active }: { color: string; active: boolean }) {
-  const beam = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.28,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        toneMapped: false,
-      }),
-    [color],
-  );
-  if (!active) {
-    return (
-      <group>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y, 0]}>
-          <ringGeometry args={[0.155, 0.185, 28]} />
-          <meshBasicMaterial color="#ffffff" toneMapped={false} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
-          <circleGeometry args={[0.155, 28]} />
-          <meshBasicMaterial color={color} toneMapped={false} />
-        </mesh>
-      </group>
-    );
-  }
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y, 0]}>
-        <ringGeometry args={[0.36, 0.41, 40]} />
+        <ringGeometry args={[0.155, 0.185, 28]} />
         <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
-        <ringGeometry args={[0.25, 0.36, 40]} />
+        <circleGeometry args={[0.155, 28]} />
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
-        <circleGeometry args={[0.25, 40]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.7} toneMapped={false} />
-      </mesh>
-      {/* Faisceau lumineux */}
-      <mesh position={[0, CELL_H + 1.1, 0]} material={beam}>
-        <cylinderGeometry args={[0.16, 0.3, 2.2, 20, 1, true]} />
-      </mesh>
-      {/* Flèche */}
-      <group position={[0, CELL_H + 1.3, 0]}>
-        <mesh rotation={[Math.PI, 0, 0]} castShadow>
-          <coneGeometry args={[0.22, 0.38, 4]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
-        </mesh>
-        <mesh position={[0, 0.32, 0]}>
-          <boxGeometry args={[0.12, 0.3, 0.12]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
-        </mesh>
-      </group>
+      {active && (
+        <group position={[0, CELL_H + 1.05, 0]}>
+          <mesh rotation={[Math.PI, 0, 0]} castShadow>
+            <coneGeometry args={[0.2, 0.34, 4]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
+          </mesh>
+          <mesh position={[0, 0.29, 0]} castShadow>
+            <boxGeometry args={[0.11, 0.26, 0.11]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 }
