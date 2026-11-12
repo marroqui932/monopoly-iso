@@ -1,4 +1,7 @@
-// Sons du jeu, synthétisés à la volée (Web Audio) : aucun fichier à charger.
+// Sons du jeu : vos fichiers perso s'il y en a (voir media.ts), sinon des sons
+// synthétisés à la volée (Web Audio).
+
+import { useMedia } from "./media";
 
 export type SoundName =
   | "dice"
@@ -99,9 +102,70 @@ function noise(a: AudioContext, t: number, dur: number, vol: number, freq: numbe
   src.start(t);
 }
 
+// ── Fichiers perso ──────────────────────────────────────────
+
+const buffers = new Map<string, AudioBuffer | Promise<AudioBuffer | null> | null>();
+
+function loadBuffer(url: string): Promise<AudioBuffer | null> {
+  const known = buffers.get(url);
+  if (known instanceof AudioBuffer) return Promise.resolve(known);
+  if (known) return known;
+  if (known === null) return Promise.resolve(null);
+  const a = audio();
+  if (!a) return Promise.resolve(null);
+  const p = fetch(url)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+    .then((data) => a.decodeAudioData(data))
+    .then((buf) => {
+      buffers.set(url, buf);
+      return buf;
+    })
+    .catch(() => {
+      console.warn(`[sons] impossible de lire ${url}`);
+      buffers.set(url, null);
+      return null;
+    });
+  buffers.set(url, p);
+  return p;
+}
+
+// Précharge les fichiers dès que les médias du plateau sont connus.
+useMedia.subscribe((m) => {
+  for (const urls of Object.values(m.sounds)) urls?.forEach((u) => void loadBuffer(u));
+  for (const urls of Object.values(m.squareSounds)) urls.forEach((u) => void loadBuffer(u));
+});
+
+function playFile(urls: string[], delay: number) {
+  const a = audio();
+  if (!a || a.state !== "running" || !master) return;
+  const url = urls[Math.floor(Math.random() * urls.length)]!;
+  const startAt = a.currentTime + Math.max(0, delay);
+  void loadBuffer(url).then((buf) => {
+    if (!buf || !master) return;
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const g = a.createGain();
+    g.gain.value = 1.6;
+    src.connect(g).connect(master);
+    src.start(Math.max(a.currentTime, startAt));
+  });
+}
+
+/** Son perso d'arrivée sur une case (s'il existe). */
+export function playSquare(position: number, delay = 0) {
+  if (muted) return;
+  const urls = useMedia.getState().squareSounds[position];
+  if (urls?.length) playFile(urls, delay);
+}
+
 /** Joue un son, éventuellement après `delay` secondes. */
 export function play(name: SoundName, delay = 0) {
   if (muted) return;
+  const custom = useMedia.getState().sounds[name];
+  if (custom?.length) {
+    playFile(custom, delay);
+    return;
+  }
   const a = audio();
   if (!a || a.state !== "running" || !master) return;
   const t = a.currentTime + Math.max(0, delay);

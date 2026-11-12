@@ -2,7 +2,7 @@
 
 import type { GameEvent, GameState, PlayerId } from "@monopoly/engine";
 import type { Timeline } from "./anim";
-import { play, type SoundName } from "./sound";
+import { play, playSquare, type SoundName } from "./sound";
 
 export type NoteKind = "info" | "good" | "bad" | "turn" | "error";
 
@@ -39,6 +39,18 @@ export function buildFeedback(
   const sound = (s: SoundName, at: number) => play(s, at - now);
 
   for (const t of timeline.hops) sound("step", t);
+
+  // Son perso d'arrivée : sur la dernière case atteinte par chaque pion.
+  const lastMove = new Map<PlayerId, number>();
+  events.forEach((e, i) => {
+    if (e.type === "moved") lastMove.set(e.player, i);
+  });
+  for (const i of lastMove.values()) {
+    const e = events[i]!;
+    if (e.type !== "moved") continue;
+    const arrival = timeline.times[i + 1] ?? timeline.end;
+    playSquare(e.to, arrival - now);
+  }
 
   events.forEach((e, i) => {
     const at = timeline.times[i] ?? now;

@@ -15,6 +15,7 @@ import {
 import { anim, nowSec, playEvents } from "./anim";
 import { buildFeedback, makeNote, type Note } from "./feedback";
 import { play } from "./sound";
+import { loadMedia } from "./media";
 import { ClientNet, HostNet, newRoomCode, type HostMsg, type Lobby, type NetStatus, type Profile } from "./net";
 import { PLAYER_COLORS, TOKENS } from "./tokens";
 
@@ -458,3 +459,8 @@ export function useOffline() {
 export function money(game: GameState, amount: number) {
   return `${amount.toLocaleString("fr-FR")} ${game.theme.currency}`;
 }
+
+// Charge les sons et images perso du plateau dès qu'une partie est affichée.
+useGame.subscribe((s) => {
+  if (s.game) void loadMedia(s.game.theme);
+});

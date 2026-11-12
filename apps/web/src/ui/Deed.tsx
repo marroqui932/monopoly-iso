@@ -10,6 +10,7 @@ import {
   type GameState,
 } from "@monopoly/engine";
 import { money, useCanAct, useGame } from "../store";
+import { useMedia } from "../media";
 
 const DESCRIPTIONS: Record<string, string> = {
   go: "Recevez votre salaire à chaque passage.",
@@ -24,6 +25,7 @@ export function Deed({ game, position }: { game: GameState; position: number }) 
   const dispatch = useGame((s) => s.dispatch);
   const select = useGame((s) => s.select);
   const canAct = useCanAct();
+  const photo = useMedia((m) => m.squareImages[position]);
   const sq = game.theme.squares[position]!;
   const prop = game.properties[position];
   const cur = game.theme.currency;
@@ -44,6 +46,7 @@ export function Deed({ game, position }: { game: GameState; position: number }) 
           {sq.name}
           {close}
         </div>
+        {photo && <img className="deed-photo" src={photo} alt="" />}
         <div className="deed-body">{sq.kind === "tax" ? `Payez ${sq.amount} ${cur}.` : DESCRIPTIONS[sq.kind]}</div>
       </div>
     );
@@ -84,6 +87,7 @@ export function Deed({ game, position }: { game: GameState; position: number }) 
         {sq.name}
         {close}
       </div>
+      {photo && <img className="deed-photo" src={photo} alt="" />}
       <div className="deed-body">
         <table>
           <tbody>

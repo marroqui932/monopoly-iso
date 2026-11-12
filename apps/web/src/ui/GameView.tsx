@@ -6,6 +6,7 @@ import { NetBanner } from "./Lobby";
 import { nowSec } from "../anim";
 import { isMuted, setMuted } from "../sound";
 import { useSettings } from "../settings";
+import { useMedia } from "../media";
 import { TOKENS } from "../tokens";
 import { ActionArea } from "./Actions";
 import { Deed } from "./Deed";
@@ -118,7 +119,8 @@ export function GameView({ game }: { game: GameState }) {
 }
 
 function DisplaySettings({ onClose }: { onClose: () => void }) {
-  const { view, decor, shadows, effects, set } = useSettings();
+  const { view, decor, photos, shadows, effects, set } = useSettings();
+  const hasPhotos = useMedia((m) => Object.keys(m.squareImages).length > 0);
   return (
     <div className="overlay settings panel">
       <div className="settings-head">
@@ -139,6 +141,12 @@ function DisplaySettings({ onClose }: { onClose: () => void }) {
         <input type="checkbox" checked={decor} onChange={(e) => set({ decor: e.target.checked })} />
         Décors 3D sur les cases
       </label>
+      {hasPhotos && (
+        <label>
+          <input type="checkbox" checked={photos} onChange={(e) => set({ photos: e.target.checked })} />
+          Photos sur les cases
+        </label>
+      )}
       <label>
         <input type="checkbox" checked={shadows} onChange={(e) => set({ shadows: e.target.checked })} />
         Ombres
@@ -328,6 +336,7 @@ function Log({ game }: { game: GameState }) {
 
 function CardPopupView({ game }: { game: GameState }) {
   const card = useGame((s) => s.card);
+  const cardImages = useMedia((m) => m.cardImages);
   const closeCard = useGame((s) => s.closeCard);
   const [, force] = useState(0);
   const wait = card ? card.showAt - nowSec() : 0;
@@ -345,6 +354,12 @@ function CardPopupView({ game }: { game: GameState }) {
         <div className="deck" style={{ background: isChance ? "linear-gradient(180deg,#ff9a52,#f2702a)" : "linear-gradient(180deg,#5cb0ff,#2f7fe0)" }}>
           {isChance ? "Chance" : "Caisse de communauté"}
         </div>
+        {(() => {
+          const deck = card.deck === "chance" ? game.theme.chance : game.theme.community;
+          const index = deck.findIndex((c) => c.text === card.text);
+          const img = index >= 0 ? cardImages[card.deck][index] : undefined;
+          return img ? <img className="card-photo" src={img} alt="" /> : null;
+        })()}
         <div className="drawer">{who?.name} tire une carte</div>
         <CardText text={card.text} />
         <button className="btn primary" onClick={closeCard} autoFocus>

@@ -263,6 +263,17 @@ describe("constructions", () => {
     expect(p(s, "p0").cash).toBe(3000 - 9 * 200);
   });
 
+  it("ne construit que pendant son tour, mais vend à tout moment", () => {
+    let s = newGame();
+    give(s, "p1", 37, 39);
+    s.properties[37]!.houses = 1;
+    s.properties[39]!.houses = 1;
+    s.bank.houses = 30;
+    expect(() => act(s, "p1", { type: "build", position: 37 })).toThrow("pendant son tour");
+    s = act(s, "p1", { type: "sellBuilding", position: 37 });
+    expect(s.properties[37]!.houses).toBe(0);
+  });
+
   it("respecte la pénurie de maisons", () => {
     let s = withBlues();
     s.bank.houses = 0;

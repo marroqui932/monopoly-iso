@@ -132,6 +132,7 @@ export function buildError(s: GameState, playerId: PlayerId, position: number): 
   const prop = s.properties[position];
   if (sq.kind !== "street" || !prop) return "On ne peut construire que sur un terrain.";
   if (prop.owner !== playerId) return "Ce terrain ne vous appartient pas.";
+  if (currentPlayer(s).id !== playerId) return "On ne construit que pendant son tour.";
   if (!ownsGroup(s, playerId, sq.group)) return "Il faut posséder tout le groupe de couleur.";
   const group = groupPositions(s, sq.group);
   if (group.some((pos) => s.properties[pos]!.mortgaged)) return "Un terrain du groupe est hypothéqué.";

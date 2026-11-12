@@ -1,5 +1,7 @@
 import { Text } from "@react-three/drei";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import * as THREE from "three";
+import { useMedia } from "../media";
 import type { GameState, Square } from "@monopoly/engine";
 import { CELL_H, cellLayout, HALF, JAIL_CELL } from "../layout";
 import { useGame } from "../store";
@@ -172,6 +174,54 @@ function Cell({ pos, sq, game }: { pos: number; sq: Square; game: GameState }) {
 
 const TOP = CELL_H + 0.005;
 
+const PHOTO_W = 0.84;
+const PHOTO_H = 0.6;
+
+/** Votre photo posée sur la case, comme un tirage avec un bord blanc (recadrée au centre). */
+function CellPhoto({ url, z }: { url: string; z: number }) {
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    let alive = true;
+    new THREE.TextureLoader().load(
+      url,
+      (t) => {
+        if (!alive) return;
+        t.colorSpace = THREE.SRGBColorSpace;
+        const img = t.image as { width: number; height: number };
+        const target = PHOTO_W / PHOTO_H;
+        const ratio = img.width / img.height;
+        if (ratio > target) {
+          t.repeat.set(target / ratio, 1);
+          t.offset.set((1 - target / ratio) / 2, 0);
+        } else {
+          t.repeat.set(1, ratio / target);
+          t.offset.set(0, (1 - ratio / target) / 2);
+        }
+        t.anisotropy = 4;
+        setTex(t);
+      },
+      undefined,
+      () => console.warn(`[images] impossible de charger ${url}`),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  if (!tex) return null;
+  return (
+    <group position={[0, TOP + 0.012, z]}>
+      <mesh rotation={FLAT} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[PHOTO_W + 0.06, PHOTO_H + 0.06]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.6} />
+      </mesh>
+      <mesh rotation={FLAT} position={[0, 0.003, 0]}>
+        <planeGeometry args={[PHOTO_W, PHOTO_H]} />
+        <meshStandardMaterial map={tex} roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
 function Label({ text, z, size = 0.115, color = INK, font = FONTS.bold }: { text: string; z: number; size?: number; color?: string; font?: string }) {
   return (
     <Text
@@ -194,8 +244,10 @@ function Label({ text, z, size = 0.115, color = INK, font = FONTS.bold }: { text
 function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: number }) {
   const cur = game.theme.currency;
   const showDecor = useSettings((s) => s.decor);
+  const showPhotos = useSettings((s) => s.photos);
+  const photo = useMedia((m) => (showPhotos ? m.squareImages[pos] : undefined));
   const decor = showDecor ? DECOR[game.theme.id]?.[pos] : undefined;
-  if (decor && (sq.kind === "street" || sq.kind === "railroad" || sq.kind === "utility")) {
+  if ((photo || decor) && (sq.kind === "street" || sq.kind === "railroad" || sq.kind === "utility")) {
     const street = sq.kind === "street";
     return (
       <>
@@ -206,9 +258,13 @@ function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: numb
           </mesh>
         )}
         <Label text={sq.name.toUpperCase()} z={street ? -0.43 : -0.74} size={0.1} />
-        <group position={[0, TOP, street ? 0.38 : 0.3]} scale={DECOR_SCALE[decor] ?? 1.1}>
-          <Decor kind={decor} />
-        </group>
+        {photo ? (
+          <CellPhoto url={photo} z={street ? 0.33 : 0.25} />
+        ) : (
+          <group position={[0, TOP, street ? 0.38 : 0.3]} scale={DECOR_SCALE[decor!] ?? 1.1}>
+            <Decor kind={decor!} />
+          </group>
+        )}
         <Label text={`${sq.price} ${cur}`} z={0.81} size={0.12} font={FONTS.medium} />
       </>
     );
