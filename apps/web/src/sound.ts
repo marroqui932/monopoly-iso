@@ -12,7 +12,8 @@ export type SoundName =
   | "bankrupt"
   | "yourTurn"
   | "trade"
-  | "error";
+  | "error"
+  | "click";
 
 const MUTE_KEY = "monopoly-iso:muet";
 
@@ -47,6 +48,11 @@ export function unlockAudio() {
 if (typeof window !== "undefined") {
   window.addEventListener("pointerdown", unlockAudio, { capture: true });
   window.addEventListener("keydown", unlockAudio, { capture: true });
+  // Petit « clic » sur tous les boutons de l'interface.
+  window.addEventListener("click", (e) => {
+    const el = (e.target as HTMLElement | null)?.closest("button");
+    if (el && !(el as HTMLButtonElement).disabled) play("click");
+  });
 }
 
 export function isMuted() {
@@ -146,6 +152,9 @@ export function play(name: SoundName, delay = 0) {
       break;
     case "error":
       tone(a, t, 220, 0.15, "square", 0.05, 180);
+      break;
+    case "click":
+      tone(a, t, 1400, 0.03, "triangle", 0.05, 900);
       break;
   }
 }

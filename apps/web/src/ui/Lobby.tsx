@@ -4,6 +4,7 @@ import { useGame } from "../store";
 import { inviteLink } from "../net";
 import { TOKENS } from "../tokens";
 import { OptionsEditor, ThemePicker } from "./Options";
+import { MenuScene } from "../scene/Scene";
 
 export function NetBanner() {
   const net = useGame((s) => s.net);
@@ -53,6 +54,9 @@ export function LobbyView() {
 
   return (
     <div className="setup">
+      <div className="menu-backdrop">
+        <MenuScene />
+      </div>
       <div className="setup-card panel">
         <h1>Salle d'attente</h1>
         {lobby ? (

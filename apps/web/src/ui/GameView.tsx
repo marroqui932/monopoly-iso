@@ -51,7 +51,7 @@ export function GameView({ game }: { game: GameState }) {
           ⟳
         </button>
         <span className="round">
-          Tour {game.round}
+          Tour <b>{game.round}</b>
           {game.options.maxRounds ? ` / ${game.options.maxRounds}` : ""}
           {game.options.freeParkingJackpot ? ` · Cagnotte : ${money(game, game.freeParkingPot)}` : ""}
           {` · Banque : ${game.bank.houses} 🏠 ${game.bank.hotels} 🏨`}
@@ -187,18 +187,23 @@ function Players({ game }: { game: GameState }) {
           <div
             key={p.id}
             className={`panel player-card ${i === game.currentPlayer && game.phase !== "gameOver" ? "current" : ""} ${p.bankrupt ? "bankrupt" : ""}`}
-            style={{ borderLeftColor: p.color }}
           >
-            <div className="name">
-              <span>
-                {p.name}
-                {p.id === me && <span style={{ color: "var(--muted)", fontWeight: 500 }}> (vous)</span>}
+            {i === game.currentPlayer && game.phase !== "gameOver" && !p.bankrupt && <span className="playing">À son tour</span>}
+            <div className="head">
+              <span className="avatar" style={{ background: p.color }}>
+                {p.name.trim().charAt(0).toUpperCase() || "?"}
               </span>
-              <span style={{ color: "var(--muted)", fontWeight: 500, fontSize: "0.8rem" }}>
-                {TOKENS.find((t) => t.id === p.token)?.label}
-              </span>
+              <div className="who-block">
+                <div className="name">
+                  <span>
+                    {p.name}
+                    {p.id === me && <span className="token"> (vous)</span>}
+                  </span>
+                  <span className="token">{TOKENS.find((t) => t.id === p.token)?.label}</span>
+                </div>
+                {p.bankrupt ? <div className="cash">Faillite</div> : <Cash value={p.cash} currency={game.theme.currency} />}
+              </div>
             </div>
-            <div className="cash">{p.bankrupt ? "Faillite" : money(game, p.cash)}</div>
             {!p.bankrupt && offline(p.id) && (
               <div className="offline">
                 ● hors ligne
@@ -271,6 +276,36 @@ function OwnedColumns({ game, playerId, onSelect }: { game: GameState; playerId:
   );
 }
 
+/** Montant qui défile jusqu'à sa nouvelle valeur, vert si ça monte, rouge si ça baisse. */
+function Cash({ value, currency }: { value: number; currency: string }) {
+  const [shown, setShown] = useState(value);
+  const [trend, setTrend] = useState<"" | "up" | "down">("");
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    if (start === value) return;
+    setTrend(value > start ? "up" : "down");
+    const t0 = performance.now();
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 700);
+      const e = 1 - Math.pow(1 - k, 3);
+      const v = Math.round(start + (value - start) * e);
+      from.current = v;
+      setShown(v);
+      if (k < 1) raf = requestAnimationFrame(step);
+      else setTimeout(() => setTrend(""), 600);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return (
+    <div className={`cash ${trend}`}>
+      {shown.toLocaleString("fr-FR")} {currency}
+    </div>
+  );
+}
+
 function Log({ game }: { game: GameState }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -301,11 +336,11 @@ function CardPopupView({ game }: { game: GameState }) {
   const isChance = card.deck === "chance";
   return (
     <div className="modal-bg" onClick={closeCard}>
-      <div className="panel card-popup" style={{ borderTopColor: isChance ? "#f4a259" : "#7fb7e6" }} onClick={(e) => e.stopPropagation()}>
-        <div className="deck" style={{ color: isChance ? "#e76f51" : "#3a86ff" }}>
-          {isChance ? "CHANCE" : "CAISSE DE COMMUNAUTÉ"}
+      <div key={card.id} className="panel card-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="deck" style={{ background: isChance ? "linear-gradient(180deg,#ff9a52,#f2702a)" : "linear-gradient(180deg,#5cb0ff,#2f7fe0)" }}>
+          {isChance ? "Chance" : "Caisse de communauté"}
         </div>
-        <div style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{who?.name} tire une carte</div>
+        <div className="drawer">{who?.name} tire une carte</div>
         <CardText text={card.text} />
         <button className="btn primary" onClick={closeCard} autoFocus>
           OK

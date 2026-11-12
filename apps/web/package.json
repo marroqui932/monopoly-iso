@@ -11,11 +11,14 @@
     "test": "echo \"(pas de tests pour l'interface)\""
   },
   "dependencies": {
+    "@fontsource/bungee": "^5.3.0",
     "@fontsource/rubik": "^5.3.0",
     "@monopoly/engine": "workspace:*",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "@react-three/postprocessing": "^3.2.2",
     "peerjs": "^1.5.5",
+    "postprocessing": "^6.39.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.187.0",

@@ -1,8 +1,12 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import * as THREE from "three";
+import { createGame, themeById } from "@monopoly/engine";
 import type { GameState } from "@monopoly/engine";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { Board } from "./Board";
+import { CameraIntro, NightLights, Skyline, Table } from "./World";
 import { Buildings, Dice, Pawns } from "./Pieces";
 import { useGame } from "../store";
 import { setInvalidate } from "../anim";
@@ -53,6 +57,7 @@ const NO_3D = new URLSearchParams(window.location.search).has("sans3d");
 export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
   const view = useSettings((s) => s.view);
   const shadows = useSettings((s) => s.shadows);
+  const effects = useSettings((s) => s.effects);
   const zoom = useZoom(view);
   const select = useGame((s) => s.select);
   const top = view === "top";
@@ -67,12 +72,12 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
       frameloop="demand"
       shadows={shadows}
       dpr={shadows ? [1, 1.5] : 1}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       onPointerMissed={() => select(null)}
     >
       <RenderBridge />
-      <color attach="background" args={["#bfe3f2"]} />
       <OrthographicCamera key={`cam-${camKey}`} makeDefault position={camPos(quarter, view)} zoom={zoom} near={-100} far={200} />
+      <CameraIntro key={`intro-${view}`} targetZoom={zoom} />
       <OrbitControls
         key={`ctl-${camKey}`}
         enableDamping
@@ -83,22 +88,80 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
         maxPolarAngle={top ? 0.001 : 1.2}
         target={[0, 0, 0]}
       />
-      <hemisphereLight args={["#ffffff", "#8d7b68", 1.1]} />
-      <directionalLight
-        position={[8, 16, 6]}
-        intensity={1.6}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
-        shadow-bias={-0.0005}
-      />
+      <NightLights shadows={shadows} />
+      <Table />
+      <Skyline />
       <Board game={game} />
       <Buildings game={game} />
       <Pawns game={game} />
       <Dice />
+      {effects && (
+        <EffectComposer multisampling={4}>
+          <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.75} />
+          <Vignette offset={0.3} darkness={0.65} />
+        </EffectComposer>
+      )}
+    </Canvas>
+  );
+}
+
+/** Décale le cadrage pour que le plateau apparaisse à gauche, à côté du menu. */
+function ShiftView({ ratio }: { ratio: number }) {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  useEffect(() => {
+    const cam = camera as THREE.OrthographicCamera;
+    if (ratio === 0) cam.clearViewOffset();
+    else cam.setViewOffset(size.width, size.height, size.width * ratio, 0, size.width, size.height);
+    cam.updateProjectionMatrix();
+  }, [camera, size, ratio]);
+  return null;
+}
+
+/** Plateau qui tourne lentement derrière les menus. */
+export function MenuScene() {
+  const effects = useSettings((s) => s.effects);
+  const demo = useMemo(() => {
+    const g = createGame(
+      themeById(undefined),
+      [
+        { id: "a", name: "A", color: "#e63946", token: "pawn" },
+        { id: "b", name: "B", color: "#3a86ff", token: "hat" },
+        { id: "c", name: "C", color: "#ffb703", token: "diamond" },
+      ],
+      {},
+      7,
+      0,
+    );
+    // Quelques maisons pour que le plateau ait l'air vivant.
+    for (const [pos, owner, houses] of [
+      [37, "a", 0], [39, "a", 0], [26, "b", 2], [27, "b", 2], [29, "b", 3], [11, "c", 5], [13, "c", 4], [14, "c", 4],
+    ] as const) {
+      g.properties[pos]!.owner = owner;
+      g.properties[pos]!.houses = houses;
+    }
+    g.players[1]!.position = 24;
+    g.players[2]!.position = 16;
+    return g;
+  }, []);
+  if (NO_3D) return null;
+  return (
+    <Canvas frameloop="always" dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }} shadows={false}>
+      <OrthographicCamera makeDefault position={camPos(0, "iso")} zoom={Math.min(window.innerWidth * 0.62, window.innerHeight) / 14} near={-100} far={200} />
+      <OrbitControls autoRotate autoRotateSpeed={0.35} enableZoom={false} enablePan={false} enableRotate={false} target={[0, 0, 0]} />
+      <ShiftView ratio={window.innerWidth >= 1100 ? 0.2 : 0} />
+      <NightLights shadows={false} />
+      <Table />
+      <Skyline />
+      <Board game={demo} />
+      <Buildings game={demo} />
+      <Pawns game={demo} />
+      {effects && (
+        <EffectComposer multisampling={0}>
+          <Bloom mipmapBlur luminanceThreshold={0.85} intensity={0.7} />
+          <Vignette offset={0.3} darkness={0.7} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

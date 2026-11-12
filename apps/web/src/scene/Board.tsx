@@ -8,26 +8,39 @@ import { useSettings } from "../settings";
 import fontBold from "@fontsource/rubik/files/rubik-latin-700-normal.woff?url";
 import fontBlack from "@fontsource/rubik/files/rubik-latin-800-normal.woff?url";
 import fontMedium from "@fontsource/rubik/files/rubik-latin-500-normal.woff?url";
+import fontSign from "@fontsource/bungee/files/bungee-latin-400-normal.woff?url";
+import { RoundedBox } from "@react-three/drei";
+import { NIGHT } from "./World";
 
-export const FONTS = { bold: fontBold, black: fontBlack, medium: fontMedium };
+export const FONTS = { bold: fontBold, black: fontBlack, medium: fontMedium, sign: fontSign };
 
-const CELL_COLOR = "#f4efe1";
-const CELL_HOVER = "#fff8dc";
+const CELL_COLOR = "#f3ecdc";
+const CELL_HOVER = "#fff6dd";
 const INK = "#2b2b2b";
 const FLAT: [number, number, number] = [-Math.PI / 2, 0, 0];
 
 export function Board({ game }: { game: GameState }) {
   return (
     <group>
-      {/* Socle */}
-      <mesh position={[0, -0.25, 0]} receiveShadow castShadow>
-        <boxGeometry args={[HALF * 2 + 0.6, 0.5, HALF * 2 + 0.6]} />
-        <meshStandardMaterial color="#6b4f3a" roughness={0.8} />
-      </mesh>
-      {/* Centre */}
+      {/* Socle et cadre doré */}
+      <RoundedBox args={[HALF * 2 + 0.9, 0.5, HALF * 2 + 0.9]} radius={0.18} smoothness={3} position={[0, -0.25, 0]} receiveShadow castShadow>
+        <meshStandardMaterial color={NIGHT.frame} roughness={0.55} />
+      </RoundedBox>
+      {[
+        [0, HALF + 0.2, HALF * 2 + 0.5, 0.06],
+        [0, -HALF - 0.2, HALF * 2 + 0.5, 0.06],
+        [HALF + 0.2, 0, 0.06, HALF * 2 + 0.5],
+        [-HALF - 0.2, 0, 0.06, HALF * 2 + 0.5],
+      ].map(([x, z, w, d], i) => (
+        <mesh key={i} position={[x!, 0.02, z!]}>
+          <boxGeometry args={[w!, 0.04, d!]} />
+          <meshStandardMaterial color={NIGHT.gold} metalness={0.85} roughness={0.25} />
+        </mesh>
+      ))}
+      {/* Centre : feutrine bleu nuit */}
       <mesh position={[0, 0.01, 0]} receiveShadow>
         <boxGeometry args={[8.9, 0.02, 8.9]} />
-        <meshStandardMaterial color="#cfe8d4" roughness={0.95} />
+        <meshStandardMaterial color="#26306a" roughness={0.95} />
       </mesh>
       <CenterDecor game={game} />
       {game.theme.squares.map((sq, pos) => (
@@ -40,31 +53,57 @@ export function Board({ game }: { game: GameState }) {
 function CenterDecor({ game }: { game: GameState }) {
   return (
     <group position={[0, 0.03, 0]} rotation={[0, Math.PI / 4, 0]}>
-      <mesh position={[0, 0.01, 0]} rotation={FLAT}>
-        <planeGeometry args={[7.2, 1.5]} />
-        <meshStandardMaterial color="#d62828" />
+      {/* Plaque du logo */}
+      <RoundedBox args={[7.6, 0.14, 2.5]} radius={0.06} smoothness={3} position={[0, 0.07, 0.15]} castShadow receiveShadow>
+        <meshStandardMaterial color="#11143a" roughness={0.4} />
+      </RoundedBox>
+      <mesh position={[0, 0.145, 0.15]} rotation={FLAT}>
+        <planeGeometry args={[7.3, 2.2]} />
+        <meshStandardMaterial color="#c8102e" roughness={0.5} />
       </mesh>
-      <Text font={FONTS.black} fontSize={0.78} position={[0, 0.03, 0]} rotation={FLAT} color="#ffffff" anchorX="center" anchorY="middle" letterSpacing={0.04}>
+      <Text
+        font={FONTS.sign}
+        fontSize={0.92}
+        position={[0, 0.16, -0.12]}
+        rotation={FLAT}
+        color="#fff6e5"
+        outlineWidth={0.035}
+        outlineColor="#5c0a17"
+        anchorX="center"
+        anchorY="middle"
+      >
         MONOPOLY
       </Text>
-      <Text font={FONTS.bold} fontSize={0.32} position={[0, 0.03, 1.15]} rotation={FLAT} color="#1d3557" anchorX="center" anchorY="middle">
+      <Text font={FONTS.sign} fontSize={0.36} position={[0, 0.16, 0.85]} rotation={FLAT} anchorX="center" anchorY="middle">
         {game.theme.name}
+        <meshBasicMaterial color="#ffd27a" toneMapped={false} />
       </Text>
-      {/* Paquets de cartes */}
-      <CardPile x={-2.2} z={-2.1} color="#f4a259" label="CHANCE" />
-      <CardPile x={2.2} z={-2.1} color="#7fb7e6" label={"CAISSE DE\nCOMMUNAUTÉ"} />
+      <CardPile x={-2.3} z={-2.35} color="#ff8a3d" symbol="?" label="Chance" />
+      <CardPile x={2.3} z={-2.35} color="#4aa3ff" symbol="€" label="Caisse de communauté" />
     </group>
   );
 }
 
-function CardPile({ x, z, color, label }: { x: number; z: number; color: string; label: string }) {
+function CardPile({ x, z, color, symbol, label }: { x: number; z: number; color: string; symbol: string; label: string }) {
   return (
     <group position={[x, 0, z]}>
-      <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.2, 0.2, 1.4]} />
-        <meshStandardMaterial color={color} roughness={0.6} />
-      </mesh>
-      <Text font={FONTS.black} fontSize={0.2} position={[0, 0.21, 0]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle" textAlign="center">
+      {[0, 1, 2, 3].map((i) => (
+        <RoundedBox
+          key={i}
+          args={[2.0, 0.05, 1.3]}
+          radius={0.025}
+          smoothness={2}
+          position={[i * 0.02 - 0.03, 0.03 + i * 0.055, -i * 0.015]}
+          rotation={[0, (i - 1.5) * 0.04, 0]}
+          castShadow
+        >
+          <meshStandardMaterial color={i === 3 ? color : "#f6f0e2"} roughness={0.6} />
+        </RoundedBox>
+      ))}
+      <Text font={FONTS.black} fontSize={0.66} position={[0.03, 0.26, -0.18]} rotation={FLAT} color="#ffffff" outlineWidth={0.03} outlineColor="#00000055" anchorX="center" anchorY="middle">
+        {symbol}
+      </Text>
+      <Text font={FONTS.bold} fontSize={0.15} position={[0.03, 0.26, 0.38]} rotation={FLAT} color="#ffffff" anchorX="center" anchorY="middle">
         {label}
       </Text>
     </group>

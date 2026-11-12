@@ -4,6 +4,7 @@ import { loadHostSave, loadProfile, loadSaved, saveProfile, useGame } from "../s
 import { normalizeCode, type Profile } from "../net";
 import { PLAYER_COLORS, TOKENS } from "../tokens";
 import { OptionsEditor, ProfileEditor, ThemePicker } from "./Options";
+import { MenuScene } from "../scene/Scene";
 
 const DEFAULT_NAMES = ["Joueur 1", "Joueur 2", "Joueur 3", "Joueur 4", "Joueur 5", "Joueur 6"];
 
@@ -13,9 +14,14 @@ export function Setup() {
 
   return (
     <div className="setup">
+      <div className="menu-backdrop">
+        <MenuScene />
+      </div>
       <div className="setup-card panel">
-        <h1>MONOPOLY</h1>
-        <p className="subtitle edition">3ajib Edition</p>
+        <h1 className="logo">
+          <span className="word">Monopoly</span>
+          <span className="edition">3ajib Edition</span>
+        </h1>
         <div className="tabs">
           <button className={`tab ${tab === "online" ? "on" : ""}`} onClick={() => setTab("online")}>
             🌐 En ligne

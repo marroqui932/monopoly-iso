@@ -51,9 +51,12 @@ export function buildFeedback(
         if (you(e.player)) {
           note("🎲 À toi de jouer !", "turn", e.player);
           sound("yourTurn", at);
+        } else if (!online) {
+          // Sur un seul écran, chaque tour est annoncé en grand.
+          note(`Au tour de ${name(e.player)}`, "turn", e.player);
+          sound("yourTurn", at);
         } else {
           note(`Au tour de ${name(e.player)}`, "info", e.player);
-          if (!online) sound("yourTurn", at);
         }
         break;
       case "paid": {
