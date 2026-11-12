@@ -20,7 +20,7 @@ apps/web          Le jeu dans le navigateur (Vite + React + React Three Fiber)
 - [x] **Étape 3 : partie locale jouable** sur un seul écran, sauvegarde automatique
 - [x] **Étape 4 : multijoueur en ligne** (hôte dans le navigateur, code de salon, reconnexion automatique)
 - [ ] Étape 5 : interface complète (enchères, constructions, hypothèques, échanges)
-- [ ] Étape 6 : animations et sons
+- [x] **Étape 6 : sons**, notifications au centre, pions du joueur actif mis en valeur
 - [ ] Étape 7 : sauvegarde / reprise, modes de fin de partie
 - [ ] Étape 8 : mise en ligne sur GitHub Pages
 - [ ] Étape 9 : thème perso entre potes, peaufinage visuel
@@ -50,7 +50,7 @@ const { state: next, events } = applyAction(state, "id-joueur", { type: "roll" }
 - **Hypothèques** (moitié du prix), levée à +10 %
 - **Prison** : amende de 50 €, carte « Libéré de prison », double pour sortir (sans rejouer), sortie forcée après 3 échecs
 - 32 cartes Chance et Caisse de communauté de l'édition française, dont « Payez 10 € ou tirez une carte Chance »
-- **Échanges** libres (argent, propriétés, cartes prison) ; propriétés hypothéquées reçues : lever l'hypothèque ou payer 10 %
+- **Échanges** (argent, propriétés, cartes prison) proposés pendant son tour (ou pour payer une dette) ; propriétés hypothéquées reçues : lever l'hypothèque ou payer 10 %
 - **Dettes** : si un joueur ne peut pas payer, il vend, hypothèque ou échange avant de régler, ou déclare faillite
 - **Faillite** envers un joueur (il récupère tout) ou envers la banque (propriétés remises aux enchères)
 - Fins de partie : dernier survivant, nombre de tours ou limite de temps (le plus gros patrimoine gagne)

@@ -29,13 +29,25 @@ export const anim = {
 
 export const nowSec = () => performance.now() / 1000;
 
-/** Transforme les événements du moteur en animations. Renvoie l'heure de fin. */
-export function playEvents(events: GameEvent[], state: GameState): number {
+export interface Timeline {
+  /** Fin de toutes les animations (horloge nowSec). */
+  end: number;
+  /** Instant où chaque événement « se produit » à l'écran. */
+  times: number[];
+  /** Instants de chaque saut de pion (pour le bruit des pas). */
+  hops: number[];
+}
+
+/** Transforme les événements du moteur en animations et calcule leur chronologie. */
+export function playEvents(events: GameEvent[], state: GameState): Timeline {
   const t0 = nowSec();
   let cursor = Math.max(t0, anim.busyUntil);
   const jailedAfter = new Map(state.players.map((p) => [p.id, p.inJail]));
+  const times: number[] = [];
+  const hops: number[] = [];
 
   for (const e of events) {
+    times.push(cursor);
     if (e.type === "diceRolled") {
       anim.dice = { a: e.dice.a, b: e.dice.b, rollId: anim.dice.rollId + 1, startedAt: cursor };
       cursor += DICE_DURATION;
@@ -47,6 +59,7 @@ export function playEvents(events: GameEvent[], state: GameState): number {
         const dir = Math.sign(e.steps);
         for (let k = 1; k <= Math.abs(e.steps); k++) {
           pa.queue.push({ pos: (((e.from + dir * k) % 40) + 40) % 40, hop: true, inJail: false });
+          hops.push(cursor + k * HOP_DURATION);
         }
         cursor += Math.abs(e.steps) * HOP_DURATION;
       } else {
@@ -57,5 +70,19 @@ export function playEvents(events: GameEvent[], state: GameState): number {
     }
   }
   anim.busyUntil = cursor;
-  return cursor;
+  requestRender();
+  return { end: cursor, times, hops };
+}
+
+// ── Rendu à la demande ──────────────────────────────────────
+// La scène ne se redessine que lorsque quelque chose bouge (gros gain de FPS / batterie).
+
+let invalidate: (() => void) | null = null;
+
+export function setInvalidate(fn: (() => void) | null) {
+  invalidate = fn;
+}
+
+export function requestRender() {
+  invalidate?.();
 }

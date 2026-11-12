@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { netWorth, type GameState } from "@monopoly/engine";
+import { currentPlayer, netWorth, type GameState } from "@monopoly/engine";
 import { Scene } from "../scene/Scene";
 import { money, useGame, useOffline } from "../store";
 import { NetBanner } from "./Lobby";
 import { nowSec } from "../anim";
+import { isMuted, setMuted } from "../sound";
 import { TOKENS } from "../tokens";
 import { ActionArea } from "./Actions";
 import { Deed } from "./Deed";
@@ -24,6 +25,8 @@ export function useBusy(): boolean {
 
 export function GameView({ game }: { game: GameState }) {
   const [quarter, setQuarter] = useState(0);
+  const [showLog, setShowLog] = useState(false);
+  const [muted, setMutedState] = useState(isMuted());
   const selected = useGame((s) => s.selected);
   const tradeOpen = useGame((s) => s.tradeOpen);
   const setTradeOpen = useGame((s) => s.setTradeOpen);
@@ -31,7 +34,7 @@ export function GameView({ game }: { game: GameState }) {
   const mode = useGame((s) => s.mode);
   const lobby = useGame((s) => s.lobby);
   const me = useGame((s) => s.me);
-  const iAmOut = !!me && !!game.players.find((p) => p.id === me)?.bankrupt;
+  const tradeAllowed = canTrade(game, mode === "local" ? null : me);
 
   return (
     <div className="game">
@@ -53,8 +56,26 @@ export function GameView({ game }: { game: GameState }) {
         </span>
         <TimeLeft game={game} />
         {lobby && mode !== "local" && <span className="round">Salle {lobby.code}</span>}
-        <button className="btn small" onClick={() => setTradeOpen(true)} disabled={game.phase === "gameOver" || iAmOut}>
+        <button
+          className="btn small"
+          onClick={() => setTradeOpen(true)}
+          disabled={!tradeAllowed}
+          title={tradeAllowed ? "" : "On ne peut proposer un échange que pendant son tour"}
+        >
           🤝 Échanger
+        </button>
+        <button className={`btn small ${showLog ? "" : "ghost"}`} title="Journal de la partie" onClick={() => setShowLog((v) => !v)}>
+          📜
+        </button>
+        <button
+          className="btn small ghost"
+          title={muted ? "Activer le son" : "Couper le son"}
+          onClick={() => {
+            setMuted(!muted);
+            setMutedState(!muted);
+          }}
+        >
+          {muted ? "🔇" : "🔊"}
         </button>
         <button
           className="btn small ghost"
@@ -77,17 +98,27 @@ export function GameView({ game }: { game: GameState }) {
       <div className="overlay side">
         {selected !== null && <Deed game={game} position={selected} />}
         <TradeList game={game} />
-        <Log game={game} />
+        {showLog && <Log game={game} />}
       </div>
 
+      <Notifications />
       <ActionArea game={game} />
 
       {tradeOpen && <TradeModal game={game} onClose={() => setTradeOpen(false)} />}
       <CardPopupView game={game} />
-      <ErrorToast />
       {game.phase === "gameOver" && <GameOver game={game} />}
     </div>
   );
+}
+
+/** Peut-on ouvrir la fenêtre d'échange ? (à son tour, ou endetté) */
+export function canTrade(game: GameState, me: string | null): boolean {
+  if (game.phase === "gameOver") return false;
+  const cur = currentPlayer(game);
+  if (me === null) return !cur.bankrupt || game.debts.length > 0;
+  const mine = game.players.find((p) => p.id === me);
+  if (!mine || mine.bankrupt) return false;
+  return cur.id === me || game.debts.some((d) => d.debtor === me);
 }
 
 function TimeLeft({ game }: { game: GameState }) {
@@ -147,30 +178,56 @@ function Players({ game }: { game: GameState }) {
                 )}
               </div>
             )}
-            {!p.bankrupt && (
+            {!p.bankrupt && (p.inJail || p.jailCards.length > 0) && (
               <div className="meta">
                 {p.inJail && <span>🔒 En prison</span>}
-                {p.jailCards.length > 0 && <span>🗝️ ×{p.jailCards.length}</span>}
-                <span>Patrimoine {money(game, netWorth(game, p.id))}</span>
+                {p.jailCards.length > 0 && <span>🗝️ Libéré de prison ×{p.jailCards.length}</span>}
               </div>
             )}
-            {owned.length > 0 && (
-              <div className="chips">
-                {owned.map((pos) => {
-                  const sq = game.theme.squares[pos]!;
-                  const color = sq.kind === "street" ? game.theme.groupColors[sq.group] : sq.kind === "railroad" ? "#343a40" : "#adb5bd";
-                  return (
-                    <span
-                      key={pos}
-                      className={`chip ${game.properties[pos]!.mortgaged ? "mortgaged" : ""}`}
-                      style={{ background: color }}
-                      title={sq.name}
-                      onClick={() => select(pos)}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            {owned.length > 0 && <OwnedColumns game={game} playerId={p.id} onSelect={select} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const GROUP_ORDER = ["brown", "lightblue", "pink", "orange", "red", "yellow", "green", "darkblue", "railroad", "utility"] as const;
+
+/** Propriétés d'un joueur rangées en colonnes par groupe : les cases vides montrent ce qui manque. */
+function OwnedColumns({ game, playerId, onSelect }: { game: GameState; playerId: string; onSelect: (pos: number) => void }) {
+  const columns = GROUP_ORDER.map((group) => {
+    const positions: number[] = [];
+    game.theme.squares.forEach((sq, i) => {
+      if ((sq.kind === "street" && sq.group === group) || sq.kind === group) positions.push(i);
+    });
+    const color =
+      group === "railroad" ? "#343a40" : group === "utility" ? "#8d99ae" : game.theme.groupColors[group];
+    return { group, positions, color };
+  }).filter((col) => col.positions.some((pos) => game.properties[pos]?.owner === playerId));
+
+  return (
+    <div className="owned">
+      {columns.map(({ group, positions, color }) => {
+        const full = positions.every((pos) => game.properties[pos]?.owner === playerId);
+        return (
+          <div key={group} className={`owned-col ${full ? "full" : ""}`} title={full ? "Groupe complet !" : ""}>
+            {positions.map((pos) => {
+              const prop = game.properties[pos]!;
+              const mine = prop.owner === playerId;
+              const sq = game.theme.squares[pos]!;
+              return (
+                <button
+                  key={pos}
+                  className={`slot ${mine ? "mine" : ""} ${mine && prop.mortgaged ? "mortgaged" : ""}`}
+                  style={mine ? { background: color } : { borderColor: color }}
+                  title={`${sq.name}${mine ? (prop.mortgaged ? " (hypothéquée)" : "") : " (pas à lui)"}`}
+                  onClick={() => onSelect(pos)}
+                >
+                  {mine && prop.houses > 0 && <span className="houses">{prop.houses === 5 ? "H" : prop.houses}</span>}
+                </button>
+              );
+            })}
           </div>
         );
       })}
@@ -222,18 +279,29 @@ function CardPopupView({ game }: { game: GameState }) {
   );
 }
 
-function ErrorToast() {
-  const error = useGame((s) => s.error);
-  const clear = useGame((s) => s.clearError);
+const NOTE_DURATION = 3.2;
+
+/** Notifications au centre de l'écran. */
+function Notifications() {
+  const notes = useGame((s) => s.notes);
+  const [, force] = useState(0);
+  const now = nowSec();
+  const visible = notes.filter((n) => n.showAt <= now && now < n.showAt + NOTE_DURATION).slice(-4);
+  const pending = notes.some((n) => now < n.showAt + NOTE_DURATION);
   useEffect(() => {
-    if (!error) return;
-    const id = setTimeout(clear, 3500);
+    if (!pending) return;
+    const id = setTimeout(() => force((x) => x + 1), 200);
     return () => clearTimeout(id);
-  }, [error, clear]);
-  if (!error) return null;
+  });
+  if (visible.length === 0) return null;
   return (
-    <div className="toast" onClick={clear}>
-      ⚠️ {error.text}
+    <div className="notes">
+      {visible.map((n) => (
+        <div key={n.id} className={`note ${n.kind}`} style={{ animationDuration: `${NOTE_DURATION}s` }}>
+          {n.color && <span className="dot" style={{ background: n.color }} />}
+          {n.text}
+        </div>
+      ))}
     </div>
   );
 }

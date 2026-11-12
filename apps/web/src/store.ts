@@ -13,6 +13,8 @@ import {
   type PlayerId,
 } from "@monopoly/engine";
 import { anim, nowSec, playEvents } from "./anim";
+import { buildFeedback, makeNote, type Note } from "./feedback";
+import { play } from "./sound";
 import { ClientNet, HostNet, newRoomCode, type HostMsg, type Lobby, type NetStatus, type Profile } from "./net";
 import { PLAYER_COLORS, TOKENS } from "./tokens";
 
@@ -45,7 +47,8 @@ interface Store {
   net: NetStatus | null;
   rejected: string | null;
 
-  error: { id: number; text: string } | null;
+  /** Notifications affichées au centre de l'écran. */
+  notes: Note[];
   selected: number | null;
   card: CardPopup | null;
   tradeOpen: boolean;
@@ -68,11 +71,10 @@ interface Store {
   select(pos: number | null): void;
   setTradeOpen(open: boolean): void;
   closeCard(): void;
-  clearError(): void;
 }
 
-let errorId = 0;
 let cardId = 0;
+const MAX_NOTES = 30;
 let host: HostNet | null = null;
 let client: ClientNet | null = null;
 
@@ -147,33 +149,27 @@ function teardownNet() {
   client = null;
 }
 
-/** Durée d'animation jusqu'à l'événement n° `index`. */
-function estimateUntil(events: GameEvent[], index: number): number {
-  let t = 0;
-  for (let i = 0; i < index; i++) {
-    const e = events[i]!;
-    if (e.type === "diceRolled") t += 0.9;
-    if (e.type === "moved") t += !e.direct && Math.abs(e.steps) <= 12 ? Math.abs(e.steps) * 0.2 : 0.7;
-  }
-  return t;
-}
-
 export const useGame = create<Store>((set, get) => {
   /** Affiche un nouvel état : animations, carte tirée, sauvegarde. */
   function show(state: GameState, events: GameEvent[]) {
-    const before = Math.max(nowSec(), anim.busyUntil);
-    const end = playEvents(events, state);
+    const timeline = playEvents(events, state);
+    const { end, times } = timeline;
     let card = get().card;
     const drawn = [...events].reverse().find((e) => e.type === "cardDrawn");
     if (drawn && drawn.type === "cardDrawn") {
       const idx = events.indexOf(drawn);
-      card = { id: ++cardId, deck: drawn.deck, text: drawn.text, player: drawn.player, showAt: Math.min(end, before + 0.05 + estimateUntil(events, idx)) };
+      card = { id: ++cardId, deck: drawn.deck, text: drawn.text, player: drawn.player, showAt: Math.min(end, (times[idx] ?? end) + 0.05) };
     }
-    set({ game: state, busyUntil: end, card });
+    const { me, mode } = get();
+    const fresh = buildFeedback(state, events, timeline, me, mode !== "local");
+    const now = nowSec();
+    const notes = [...get().notes.filter((n) => n.showAt > now - 6), ...fresh].slice(-MAX_NOTES);
+    set({ game: state, busyUntil: end, card, notes });
   }
 
   function fail(text: string) {
-    set({ error: { id: ++errorId, text } });
+    play("error");
+    set({ notes: [...get().notes, makeNote(`⚠️ ${text}`, "error", nowSec())].slice(-MAX_NOTES) });
   }
 
   // ── Hôte ──
@@ -290,7 +286,7 @@ export const useGame = create<Store>((set, get) => {
     lobby: null,
     net: null,
     rejected: null,
-    error: null,
+    notes: [],
     selected: null,
     card: null,
     tradeOpen: false,
@@ -301,7 +297,7 @@ export const useGame = create<Store>((set, get) => {
       const game = createGame(parisTheme, players, options);
       resetAnim(game);
       store(LOCAL_SAVE, game);
-      set({ mode: "local", me: null, lobby: null, net: null, game, selected: null, card: null, error: null, tradeOpen: false, busyUntil: 0 });
+      set({ mode: "local", me: null, lobby: null, net: null, game, selected: null, card: null, notes: [], tradeOpen: false, busyUntil: 0 });
     },
 
     resumeSaved() {
@@ -309,7 +305,7 @@ export const useGame = create<Store>((set, get) => {
       if (!game) return false;
       teardownNet();
       resetAnim(game);
-      set({ mode: "local", me: null, lobby: null, net: null, game, selected: null, card: null, error: null, tradeOpen: false, busyUntil: 0 });
+      set({ mode: "local", me: null, lobby: null, net: null, game, selected: null, card: null, notes: [], tradeOpen: false, busyUntil: 0 });
       return true;
     },
 
@@ -434,9 +430,6 @@ export const useGame = create<Store>((set, get) => {
     },
     closeCard() {
       set({ card: null });
-    },
-    clearError() {
-      set({ error: null });
     },
   };
 });

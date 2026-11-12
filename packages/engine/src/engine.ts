@@ -320,6 +320,7 @@ function charge(
 
 function transfer(c: Ctx, from: Player, to: Player | null, amount: number, reason: string, toPot: boolean) {
   changeCash(c, from, -amount, reason);
+  c.events.push({ type: "paid", from: from.id, to: to?.id ?? null, amount, reason });
   if (to) {
     changeCash(c, to, amount, reason);
     log(c, `${from.name} paie ${money(c, amount)} à ${to.name} (${reason}).`);
@@ -873,6 +874,9 @@ function validateTrade(c: Ctx, from: Player, to: Player, give: TradeSide, take: 
 }
 
 function doProposeTrade(c: Ctx, p: Player, toId: PlayerId, give: TradeSide, take: TradeSide) {
+  // On ne propose qu'à son tour… sauf pour trouver de quoi payer une dette.
+  const inDebt = c.s.debts.some((d) => d.debtor === p.id);
+  if (currentPlayer(c.s).id !== p.id && !inDebt) fail("Vous ne pouvez proposer un échange que pendant votre tour.");
   const to = getPlayer(c.s, toId);
   if (!to) fail("Joueur inconnu.");
   validateTrade(c, p, to, give, take);
@@ -945,6 +949,10 @@ function doCloseTrade(c: Ctx, p: Player, tradeId: number, how: "reject" | "cance
 
 function advanceTurn(c: Ctx) {
   const s = c.s;
+  // Les propositions du joueur qui termine son tour expirent.
+  const leaving = currentPlayer(s).id;
+  for (const t of s.trades.filter((t) => t.from === leaving)) c.events.push({ type: "tradeClosed", tradeId: t.id });
+  s.trades = s.trades.filter((t) => t.from !== leaving);
   s.extraRoll = false;
   s.doublesCount = 0;
   s.pendingCard = null;

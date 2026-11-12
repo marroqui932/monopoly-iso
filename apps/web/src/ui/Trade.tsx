@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { currentPlayer, groupHasBuildings, type GameState, type Player, type TradeSide } from "@monopoly/engine";
+import { currentPlayer, groupHasBuildings, mortgageValue, type GameState, type Player, type TradeSide } from "@monopoly/engine";
 import { money, useCanAct, useGame } from "../store";
 
 const empty = (): TradeSide => ({ cash: 0, properties: [], jailCards: 0 });
@@ -8,7 +8,9 @@ export function TradeModal({ game, onClose }: { game: GameState; onClose: () => 
   const dispatch = useGame((s) => s.dispatch);
   const me = useGame((s) => s.me);
   const alive = game.players.filter((p) => !p.bankrupt);
-  const [fromId, setFromId] = useState(me ?? (currentPlayer(game).bankrupt ? alive[0]!.id : currentPlayer(game).id));
+  // Peut proposer : le joueur dont c'est le tour, ou un joueur endetté.
+  const proposers = alive.filter((p) => p.id === currentPlayer(game).id || game.debts.some((d) => d.debtor === p.id));
+  const [fromId, setFromId] = useState(me ?? proposers[0]?.id ?? alive[0]!.id);
   const [toId, setToId] = useState(alive.find((p) => p.id !== fromId)!.id);
   const [give, setGive] = useState<TradeSide>(empty);
   const [take, setTake] = useState<TradeSide>(empty);
@@ -38,7 +40,7 @@ export function TradeModal({ game, onClose }: { game: GameState; onClose: () => 
             <b>Vous</b>
           ) : (
             <select value={fromId} onChange={(e) => changeFrom(e.target.value)} aria-label="Qui propose">
-              {alive.map((p) => (
+              {proposers.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -139,8 +141,13 @@ function SideEditor({
           <label key={pos} title={built ? "Vendez d'abord les constructions du groupe" : ""} style={{ opacity: built ? 0.45 : 1 }}>
             <input type="checkbox" disabled={built} checked={side.properties.includes(pos)} onChange={() => toggle(pos)} />
             <span className="dot" style={{ background: color, borderRadius: 3 }} />
-            {sq.name}
-            {game.properties[pos]!.mortgaged && " (hyp.)"}
+            <span style={{ flex: 1 }}>
+              {sq.name}
+              {game.properties[pos]!.mortgaged && <b style={{ color: "#c92a2a" }}> · hypothéquée</b>}
+            </span>
+            <span className="trade-val" title="Prix d'achat · valeur hypothécaire">
+              {"price" in sq ? money(game, sq.price) : ""} · hyp. {money(game, mortgageValue(game, pos))}
+            </span>
           </label>
         );
       })}
@@ -151,7 +158,10 @@ function SideEditor({
 function describe(game: GameState, side: TradeSide): string {
   const parts: string[] = [];
   if (side.cash > 0) parts.push(money(game, side.cash));
-  for (const pos of side.properties) parts.push(game.theme.squares[pos]!.name);
+  for (const pos of side.properties) {
+    const hyp = game.properties[pos]?.mortgaged ? "hypothéquée, " : "";
+    parts.push(`${game.theme.squares[pos]!.name} (${hyp}hyp. ${money(game, mortgageValue(game, pos))})`);
+  }
   if (side.jailCards > 0) parts.push(`${side.jailCards} carte(s) prison`);
   return parts.length ? parts.join(", ") : "rien";
 }

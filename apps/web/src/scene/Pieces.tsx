@@ -1,4 +1,4 @@
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef, type ReactElement, type RefObject } from "react";
 import * as THREE from "three";
 import type { GameState, Player } from "@monopoly/engine";
@@ -66,10 +66,12 @@ function Hotel({ x, z, rot }: { x: number; z: number; rot: number }) {
 /** Petite animation d'apparition. */
 function usePop(ref: RefObject<THREE.Group | null>) {
   const born = useRef(nowSec());
+  const invalidate = useThree((s) => s.invalidate);
   useFrame(() => {
     const g = ref.current;
     if (!g) return;
     const t = Math.min(1, (nowSec() - born.current) / 0.35);
+    if (t < 1) invalidate();
     const s = t < 1 ? 1 - Math.pow(1 - t, 3) * Math.cos(t * 6) : 1;
     g.scale.setScalar(Math.max(0.01, s));
   });
@@ -78,15 +80,47 @@ function usePop(ref: RefObject<THREE.Group | null>) {
 // ── Pions ────────────────────────────────────────────────────
 
 export function Pawns({ game }: { game: GameState }) {
+  const current = game.phase === "gameOver" ? null : game.players[game.currentPlayer]?.id;
   return (
     <group>
-      {game.players.map((p, slot) => (p.bankrupt ? null : <Pawn key={p.id} player={p} slot={slot} />))}
+      {game.players.map((p, slot) => (p.bankrupt ? null : <Pawn key={p.id} player={p} slot={slot} active={p.id === current} />))}
     </group>
   );
 }
 
-function Pawn({ player, slot }: { player: Player; slot: number }) {
+/** Anneau de couleur sous le pion ; le joueur actif a un grand anneau lumineux et une flèche. */
+function Highlight({ color, active }: { color: string; active: boolean }) {
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CELL_H + 0.012, 0]}>
+        <ringGeometry args={active ? [0.2, 0.3, 32] : [0.17, 0.215, 24]} />
+        <meshBasicMaterial color={color} transparent opacity={active ? 1 : 0.75} toneMapped={false} />
+      </mesh>
+      {active && (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CELL_H + 0.01, 0]}>
+            <circleGeometry args={[0.2, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.3} toneMapped={false} />
+          </mesh>
+          <group position={[0, CELL_H + 0.85, 0]}>
+            <mesh rotation={[Math.PI, 0, 0]} castShadow>
+              <coneGeometry args={[0.16, 0.3, 4]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+            </mesh>
+            <mesh position={[0, 0.25, 0]}>
+              <boxGeometry args={[0.09, 0.22, 0.09]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+            </mesh>
+          </group>
+        </>
+      )}
+    </group>
+  );
+}
+
+function Pawn({ player, slot, active }: { player: Player; slot: number; active: boolean }) {
   const ref = useRef<THREE.Group>(null);
+  const invalidate = useThree((s) => s.invalidate);
   const motion = useRef<{
     from: THREE.Vector3;
     to: THREE.Vector3;
@@ -104,6 +138,7 @@ function Pawn({ player, slot }: { player: Player; slot: number }) {
     const t = nowSec();
     const pa = anim.pawns.get(player.id);
 
+    if (pa && pa.queue.length > 0) invalidate();
     if (!motion.current && pa && pa.queue.length > 0 && t >= pa.startAt) {
       const wp = pa.queue.shift()!;
       const [x, z] = pawnSpot(wp.pos, slot, wp.inJail);
@@ -118,6 +153,7 @@ function Pawn({ player, slot }: { player: Player; slot: number }) {
 
     const m = motion.current;
     if (m) {
+      invalidate();
       const k = Math.min(1, (t - m.start) / m.duration);
       const e = m.hop ? k : k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
       g.position.lerpVectors(m.from, m.to, e);
@@ -134,15 +170,24 @@ function Pawn({ player, slot }: { player: Player; slot: number }) {
     if (!pa || pa.queue.length === 0) {
       const p = playerRef.current;
       const [x, z] = pawnSpot(p.position, slot, p.inJail);
-      g.position.x += (x - g.position.x) * 0.15;
-      g.position.z += (z - g.position.z) * 0.15;
+      const dx = x - g.position.x;
+      const dz = z - g.position.z;
+      if (Math.abs(dx) + Math.abs(dz) > 0.002) {
+        g.position.x += dx * 0.15;
+        g.position.z += dz * 0.15;
+        invalidate();
+      } else {
+        g.position.x = x;
+        g.position.z = z;
+      }
       g.position.y = 0;
     }
   });
 
   return (
     <group ref={ref} position={[init[0], 0, init[1]]}>
-      <group position={[0, CELL_H, 0]}>
+      <Highlight color={player.color} active={active} />
+      <group position={[0, CELL_H, 0]} scale={active ? 1.2 : 1}>
         <TokenMesh token={player.token} color={player.color} />
       </group>
     </group>
@@ -261,6 +306,7 @@ const SIZE = 0.5;
 
 function Die({ which, materials }: { which: "a" | "b"; materials: THREE.Material[] }) {
   const ref = useRef<THREE.Mesh>(null);
+  const invalidate = useThree((s) => s.invalidate);
   // Posés au centre du plateau, sous le titre, côté caméra.
   const restX = which === "a" ? 1.45 : 2.25;
   const restZ = which === "a" ? 2.25 : 1.45;
@@ -280,6 +326,7 @@ function Die({ which, materials }: { which: "a" | "b"; materials: THREE.Material
     const value = which === "a" ? d.a : d.b;
     const [rx, ry, rz] = restEuler(value);
     const k = Math.min(1, Math.max(0, (nowSec() - d.startedAt) / 0.9));
+    if (k < 1) invalidate();
     const left = Math.pow(1 - k, 2);
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx + spin.x * left, ry + spin.y * left, rz + spin.z * left));
     const yawQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spin.yaw + Math.PI / 4);

@@ -1,10 +1,11 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import type { GameState } from "@monopoly/engine";
 import { Board } from "./Board";
 import { Buildings, Dice, Pawns } from "./Pieces";
 import { useGame } from "../store";
+import { setInvalidate } from "../anim";
 
 const DIST = 30;
 
@@ -24,6 +25,16 @@ function useZoom() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
   return zoom;
+}
+
+/** Permet au reste de l'appli de demander une nouvelle image (rendu à la demande). */
+function RenderBridge() {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    setInvalidate(invalidate);
+    return () => setInvalidate(null);
+  }, [invalidate]);
+  return null;
 }
 
 /** `?lite` : graphismes allégés (sans ombres) pour les machines modestes. */
@@ -49,7 +60,14 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
   if (NO_3D) return <div style={{ position: "absolute", inset: 0 }} onClick={() => select(null)} />;
 
   return (
-    <Canvas shadows={!LITE} dpr={LITE ? 1 : [1, 2]} onPointerMissed={() => select(null)}>
+    <Canvas
+      frameloop="demand"
+      shadows={!LITE}
+      dpr={LITE ? 1 : [1, 1.5]}
+      gl={{ antialias: !LITE, powerPreference: "high-performance" }}
+      onPointerMissed={() => select(null)}
+    >
+      <RenderBridge />
       <color attach="background" args={["#bfe3f2"]} />
       <OrthographicCamera makeDefault position={camPos(0)} zoom={zoom} near={-100} far={200} />
       <OrbitControls

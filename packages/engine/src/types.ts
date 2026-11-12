@@ -249,6 +249,8 @@ export type GameEvent =
   | { type: "leftJail"; player: PlayerId }
   | { type: "cardDrawn"; player: PlayerId; deck: DeckName; text: string }
   | { type: "cashChanged"; player: PlayerId; delta: number; reason: string }
+  /** Paiement d'un joueur à un autre (to) ou à la banque (to = null). */
+  | { type: "paid"; from: PlayerId; to: PlayerId | null; amount: number; reason: string }
   | { type: "propertyBought"; player: PlayerId; position: number; price: number }
   | { type: "auctionStarted"; position: number }
   | { type: "auctionBid"; player: PlayerId; amount: number }

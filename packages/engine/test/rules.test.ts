@@ -423,6 +423,22 @@ describe("échanges", () => {
     expect(p(s, "p1").cash).toBe(1500 - 50 - 220);
   });
 
+  it("on ne propose un échange qu'à son tour (sauf dette), et il expire en fin de tour", () => {
+    let s = newGame();
+    const offer = { cash: 10, properties: [], jailCards: 0 };
+    const nothing = { cash: 0, properties: [], jailCards: 0 };
+    expect(() => act(s, "p1", { type: "proposeTrade", to: "p0", give: offer, take: nothing })).toThrow("pendant votre tour");
+    s = act(s, "p0", { type: "proposeTrade", to: "p1", give: offer, take: nothing });
+    s = rollWith(s, "p0", 1, 2);
+    if (s.phase === "buy") s = act(s, "p0", { type: "buy" });
+    s = act(s, "p0", { type: "endTurn" });
+    expect(s.trades).toHaveLength(0);
+    // Un joueur endetté peut proposer hors de son tour.
+    s.debts = [{ id: 500, debtor: "p0", creditor: null, amount: 5000, reason: "test", toPot: false }];
+    s = act(s, "p0", { type: "proposeTrade", to: "p1", give: offer, take: nothing });
+    expect(s.trades).toHaveLength(1);
+  });
+
   it("une proposition peut être refusée ou retirée", () => {
     let s = newGame();
     const trade = { type: "proposeTrade" as const, to: "p1", give: { cash: 10, properties: [], jailCards: 0 }, take: { cash: 0, properties: [], jailCards: 0 } };

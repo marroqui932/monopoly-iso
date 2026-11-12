@@ -124,9 +124,28 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 .player-card .name { font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
 .player-card .cash { font-size: 1.15rem; font-weight: 800; }
 .player-card .meta { font-size: 0.8rem; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
-.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
-.chip { width: 12px; height: 16px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.15); cursor: pointer; }
-.chip.mortgaged { opacity: 0.3; }
+.owned { display: flex; gap: 4px; margin-top: 8px; align-items: flex-start; flex-wrap: wrap; }
+.owned-col { display: flex; flex-direction: column; gap: 2px; padding: 2px; border-radius: 5px; border: 2px solid transparent; }
+.owned-col.full { border-color: #ffb703; background: #fff3c4; }
+.slot { width: 15px; height: 11px; border-radius: 3px; border: 1.5px dashed #ced4da; background: transparent; padding: 0; cursor: pointer; position: relative; }
+.slot.mine { border: 1px solid rgba(0, 0, 0, 0.2); }
+.slot.mortgaged { opacity: 0.3; }
+.slot .houses { position: absolute; inset: 0; font-size: 8px; line-height: 9px; font-weight: 800; color: #fff; text-shadow: 0 0 2px #000; }
+
+/* ── Notifications centrales ─────────────── */
+.notes { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 15; width: min(560px, 92vw); }
+.note { background: rgba(31, 36, 48, 0.9); color: #fff; padding: 10px 18px; border-radius: 14px; font-weight: 600; font-size: 1.05rem; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; text-align: center; animation-name: note-life; animation-timing-function: ease; animation-fill-mode: both; }
+.note .dot { box-shadow: 0 0 0 2px #fff; }
+.note.good { background: rgba(42, 157, 143, 0.95); }
+.note.bad { background: rgba(214, 40, 40, 0.93); }
+.note.error { background: rgba(247, 127, 0, 0.95); }
+.note.turn { background: #ffd166; color: var(--ink); font-size: 1.35rem; padding: 14px 26px; }
+@keyframes note-life {
+  0% { opacity: 0; transform: translateY(12px) scale(0.92); }
+  8% { opacity: 1; transform: translateY(0) scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
 
 .actions { bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: min(760px, calc(100% - 24px)); }
 .action-bar { padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
@@ -156,7 +175,7 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 
 /* ── Modales ─────────────────────────────── */
 .modal-bg { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.35); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
-.modal { padding: 22px; width: min(560px, 100%); max-height: 100%; overflow: auto; }
+.modal { padding: 22px; width: min(720px, 100%); max-height: 100%; overflow: auto; }
 .modal h2 { margin: 0 0 12px; }
 .card-popup { width: 340px; text-align: center; padding: 26px; border-top: 10px solid; }
 .card-popup .deck { font-weight: 800; letter-spacing: 0.06em; margin-bottom: 10px; }
@@ -173,6 +192,7 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 .trade-col { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .trade-col h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
 .trade-col label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 2px 0; }
+.trade-val { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
 .trade-col input[type="number"] { width: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
 .trade-list { padding: 10px 12px; font-size: 0.85rem; }
 .trade-list h3 { margin: 0 0 6px; font-size: 0.9rem; }
@@ -188,5 +208,5 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 @media (max-width: 900px) {
   .side { display: none; }
   .players { width: 170px; }
-  .player-card .meta, .chips { display: none; }
+  .player-card .meta, .owned { display: none; }
 }
