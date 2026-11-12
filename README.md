@@ -10,14 +10,14 @@ Un Monopoly entre potes, en 3D low-poly et vue isométrique, jouable dans le nav
 
 ```
 packages/engine   Moteur de règles (TypeScript pur, aucune dépendance) + tests
-apps/web          Le jeu dans le navigateur (à venir : Vite + React Three Fiber)
+apps/web          Le jeu dans le navigateur (Vite + React + React Three Fiber)
 ```
 
 ## Avancement
 
 - [x] **Étape 1 : moteur de règles complet**, testé
-- [ ] Étape 2 : plateau 3D isométrique
-- [ ] Étape 3 : partie locale jouable (un seul écran)
+- [x] **Étape 2 : plateau 3D isométrique** (pions, maisons, hôtels, dés animés)
+- [x] **Étape 3 : partie locale jouable** sur un seul écran, sauvegarde automatique
 - [ ] Étape 4 : multijoueur en ligne (hôte dans le navigateur)
 - [ ] Étape 5 : interface complète (enchères, constructions, hypothèques, échanges)
 - [ ] Étape 6 : animations et sons
@@ -61,6 +61,20 @@ const { state: next, events } = applyAction(state, "id-joueur", { type: "roll" }
 ### Créer votre thème entre potes
 
 Copiez `packages/engine/src/themes/paris.ts`, puis changez les noms des cases, les couleurs, les textes et effets des cartes, et la monnaie. Les prix et loyers peuvent aussi être modifiés.
+
+## Jouer en local
+
+```bash
+pnpm install
+pnpm --filter @monopoly/web dev   # puis ouvrir http://localhost:5173
+```
+
+## Mise en ligne
+
+Chaque push sur `main` lance les tests, construit le jeu et le publie sur GitHub Pages
+(`.github/workflows/pages.yml`). Réglage à faire une seule fois sur GitHub :
+**Settings → Pages → Build and deployment → Source : GitHub Actions**.
+Le jeu est alors disponible sur https://marroqui932.github.io/monopoly-iso/
 
 ## Développement
 

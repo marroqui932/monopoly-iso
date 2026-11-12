@@ -1,0 +1,172 @@
+:root {
+  --ink: #1f2430;
+  --muted: #6b7280;
+  --panel: rgba(255, 255, 255, 0.92);
+  --line: #e5e7eb;
+  --accent: #d62828;
+  --accent-dark: #a61e1e;
+  --ok: #2a9d8f;
+  --radius: 14px;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  font-family: "Rubik", system-ui, sans-serif;
+  color: var(--ink);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; }
+body { background: #bfe3f2; }
+button, input, select { font: inherit; color: inherit; }
+
+/* ── Boutons ─────────────────────────────── */
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #eef0f3;
+  transition: transform 0.08s, background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: #e2e5ea; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-dark); }
+.btn.ok { background: var(--ok); color: #fff; }
+.btn.ok:hover:not(:disabled) { background: #21867a; }
+.btn.big { padding: 13px 26px; font-size: 1.08rem; border-radius: 12px; }
+.btn.small { padding: 5px 10px; font-size: 0.85rem; border-radius: 8px; }
+.btn.ghost { background: transparent; }
+.btn.ghost:hover:not(:disabled) { background: rgba(0, 0, 0, 0.06); }
+
+.panel {
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* ── Écran de création ───────────────────── */
+.setup {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  background: radial-gradient(circle at 30% 20%, #e0f2fb, #9fd3ea);
+}
+.setup-card { width: min(720px, 100%); padding: 28px; }
+.setup h1 { margin: 0; font-size: 2.2rem; font-weight: 800; color: var(--accent); letter-spacing: 0.02em; }
+.setup .subtitle { color: var(--muted); margin: 4px 0 22px; }
+.setup h2 { font-size: 1.05rem; margin: 22px 0 10px; }
+.player-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.player-row input[type="text"] {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  width: 100%;
+}
+.swatches { display: flex; gap: 4px; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer; padding: 0;
+}
+.swatch.on { border-color: var(--ink); }
+.swatch:disabled { opacity: 0.2; cursor: not-allowed; }
+select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; background: #fff; }
+.options { display: grid; gap: 10px; }
+.options label { display: flex; align-items: center; gap: 8px; }
+.options input[type="number"] { width: 80px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.setup-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap; }
+
+/* ── Jeu ─────────────────────────────────── */
+.game { position: relative; height: 100%; }
+.game canvas { touch-action: none; }
+.overlay { position: absolute; pointer-events: none; }
+.overlay > * { pointer-events: auto; }
+
+.topbar { top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; align-items: center; }
+.topbar .round { padding: 0 10px; color: var(--muted); font-size: 0.9rem; }
+
+.players { top: 12px; left: 12px; width: 230px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 24px); overflow: auto; }
+.player-card { padding: 10px 12px; border-left: 6px solid; transition: transform 0.2s; }
+.player-card.current { transform: translateX(6px); box-shadow: 0 0 0 3px #ffd166, var(--shadow); }
+.player-card.bankrupt { opacity: 0.45; }
+.player-card .name { font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+.player-card .cash { font-size: 1.15rem; font-weight: 800; }
+.player-card .meta { font-size: 0.8rem; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.chip { width: 12px; height: 16px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.15); cursor: pointer; }
+.chip.mortgaged { opacity: 0.3; }
+
+.actions { bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: min(760px, calc(100% - 24px)); }
+.action-bar { padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.action-bar .who { font-weight: 700; display: flex; align-items: center; gap: 8px; margin-right: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.notice { padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; border-left: 6px solid #f77f00; }
+.notice .hint { font-size: 0.85rem; color: var(--muted); width: 100%; text-align: center; }
+
+.side { top: 12px; right: 12px; width: 290px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100% - 24px); }
+.log { padding: 10px 12px; font-size: 0.82rem; overflow: auto; min-height: 120px; max-height: 260px; }
+.log h3 { margin: 0 0 6px; font-size: 0.9rem; }
+.log p { margin: 3px 0; line-height: 1.3; }
+.log p:last-child { font-weight: 600; }
+
+/* ── Fiche de propriété ──────────────────── */
+.deed { overflow: hidden; }
+.deed-head { padding: 12px; text-align: center; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 1px 2px rgba(0,0,0,0.35); position: relative; }
+.deed-head small { display: block; font-weight: 500; font-size: 0.75rem; opacity: 0.9; text-transform: none; }
+.deed-head .close { position: absolute; top: 6px; right: 6px; color: #fff; }
+.deed-body { padding: 10px 14px 14px; font-size: 0.88rem; }
+.deed table { width: 100%; border-collapse: collapse; }
+.deed td { padding: 2px 0; }
+.deed td:last-child { text-align: right; font-weight: 600; }
+.deed tr.active td { color: var(--accent); }
+.deed .owner { margin: 8px 0; display: flex; align-items: center; gap: 6px; }
+.deed .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* ── Modales ─────────────────────────────── */
+.modal-bg { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.35); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+.modal { padding: 22px; width: min(560px, 100%); max-height: 100%; overflow: auto; }
+.modal h2 { margin: 0 0 12px; }
+.card-popup { width: 340px; text-align: center; padding: 26px; border-top: 10px solid; }
+.card-popup .deck { font-weight: 800; letter-spacing: 0.06em; margin-bottom: 10px; }
+.card-popup p { font-size: 1.05rem; line-height: 1.4; }
+
+.auction { padding: 14px; width: min(560px, calc(100vw - 24px)); }
+.auction h3 { margin: 0 0 4px; }
+.auction .best { font-size: 1.2rem; font-weight: 800; margin: 6px 0 10px; }
+.bidder { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.bidder .nm { font-weight: 600; min-width: 90px; display: flex; align-items: center; gap: 6px; }
+.bidder input { width: 80px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+
+.trade-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.trade-col { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.trade-col h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+.trade-col label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 2px 0; }
+.trade-col input[type="number"] { width: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+.trade-list { padding: 10px 12px; font-size: 0.85rem; }
+.trade-list h3 { margin: 0 0 6px; font-size: 0.9rem; }
+.trade-item { border-top: 1px solid var(--line); padding: 6px 0; }
+.trade-item .btns { display: flex; gap: 6px; margin-top: 4px; }
+
+.toast { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: #1f2430; color: #fff; padding: 10px 16px; border-radius: 10px; box-shadow: var(--shadow); z-index: 20; font-weight: 500; }
+
+.gameover { text-align: center; }
+.gameover h2 { font-size: 1.8rem; color: var(--accent); }
+.gameover ol { text-align: left; }
+
+@media (max-width: 900px) {
+  .side { display: none; }
+  .players { width: 170px; }
+  .player-card .meta, .chips { display: none; }
+}
