@@ -270,13 +270,27 @@ function CardPopupView({ game }: { game: GameState }) {
           {isChance ? "CHANCE" : "CAISSE DE COMMUNAUTÉ"}
         </div>
         <div style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{who?.name} tire une carte</div>
-        <p>{card.text}</p>
+        <CardText text={card.text} />
         <button className="btn primary" onClick={closeCard} autoFocus>
           OK
         </button>
       </div>
     </div>
   );
+}
+
+/** « Titre : texte » → titre en gros, si le titre est court. */
+function CardText({ text }: { text: string }) {
+  const i = text.indexOf(" : ");
+  if (i > 0 && i <= 20) {
+    return (
+      <>
+        <div className="card-title">{text.slice(0, i)}</div>
+        <p>{text.slice(i + 3)}</p>
+      </>
+    );
+  }
+  return <p>{text}</p>;
 }
 
 const NOTE_DURATION = 3.2;

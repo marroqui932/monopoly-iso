@@ -1,4 +1,4 @@
-import type { BoardTheme, Card, Square } from "../types";
+import type { BoardTheme, Card, CardEffect, Square } from "../types";
 import { parisTheme } from "./paris";
 
 /**
@@ -55,6 +55,30 @@ function retitle(cards: Card[]): Card[] {
   }));
 }
 
+const classicChance = retitle(parisTheme.chance);
+const keep = (i: number): Card => classicChance[i - 1]!;
+const card = (text: string, effect: CardEffect): Card => ({ text, effect });
+
+/** Cartes Chance de la 3ajib Edition (numérotées comme dans le paquet classique). */
+const chance: Card[] = [
+  /* 1 */ keep(1),
+  /* 2 */ card("Cavale : des mecs de Sevran veulent ta peau, cours à Orly !", { type: "advanceTo", position: 39, collectGo: true }),
+  /* 3 */ card("Hechek : l'envie te prend d'aller au Bois de Boulogne.", { type: "advanceTo", position: 11, collectGo: true }),
+  /* 4 */ card("Faut se refaire : direction le Casino d'Enghien.", { type: "advanceTo", position: 24, collectGo: true }),
+  /* 5 */ card("Maïs : tu vas à Garges-Sarcelles pour taper du bon maïs chaud des tantines.", { type: "advanceTo", position: 15, collectGo: true }),
+  /* 6 */ keep(6),
+  /* 7 */ card("Délit : séquestration, kidnapping, trafic de stupéfiants… Direction Fleury !", { type: "goToJail" }),
+  /* 8 */ card("Bénef : le CROUS se trompe et te verse 50 €.", { type: "gain", amount: 50 }),
+  /* 9 */ card("Bon baveux : le baveux de Tel-Aviv peut te faire sortir du hebs. Garde cette carte.", { type: "jailFree" }),
+  /* 10 */ keep(10),
+  /* 11 */ keep(11),
+  /* 12 */ card("Excès de vitesse : tu tartinais trop sur la route fami. −90 €", { type: "pay", amount: 90 }),
+  /* 13 */ card("Scam : t'as cru au brouteur camerounais au tel. −200 €", { type: "pay", amount: 200 }),
+  /* 14 */ card("Amende : trop d'aura. −67 €", { type: "pay", amount: 67 }),
+  /* 15 */ card("Revolut : un boug se trompe et t'envoie 150 €, tu le bloques direct.", { type: "gain", amount: 150 }),
+  /* 16 */ card("Chômage : France Travail te régale. +100 €", { type: "gain", amount: 100 }),
+];
+
 export const ajibTheme: BoardTheme = {
   ...parisTheme,
   id: "3ajib",
@@ -69,6 +93,6 @@ export const ajibTheme: BoardTheme = {
     darkblue: "Aéroports",
   },
   squares,
-  chance: retitle(parisTheme.chance),
+  chance,
   community: retitle(parisTheme.community),
 };
