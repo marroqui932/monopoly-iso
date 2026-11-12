@@ -42,7 +42,6 @@ export function GameView({ game }: { game: GameState }) {
     <div className="game">
       <NetBanner />
       <Scene game={game} quarter={quarter} />
-      <div className="vignette" />
 
       <div className="overlay topbar panel">
         <button className="btn small ghost" title="Tourner le plateau" onClick={() => setQuarter((q) => (q + 3) % 4)}>
@@ -119,7 +118,7 @@ export function GameView({ game }: { game: GameState }) {
 }
 
 function DisplaySettings({ onClose }: { onClose: () => void }) {
-  const { view, decor, shadows, set } = useSettings();
+  const { view, decor, shadows, effects, set } = useSettings();
   return (
     <div className="overlay settings panel">
       <div className="settings-head">
@@ -142,8 +141,13 @@ function DisplaySettings({ onClose }: { onClose: () => void }) {
       </label>
       <label>
         <input type="checkbox" checked={shadows} onChange={(e) => set({ shadows: e.target.checked })} />
-        Ombres (désactiver si ça rame)
+        Ombres
       </label>
+      <label>
+        <input type="checkbox" checked={effects} onChange={(e) => set({ effects: e.target.checked })} />
+        Effets de lumière (halo des néons)
+      </label>
+      <span className="hint-text" style={{ margin: 0 }}>Si ça rame : coupe d'abord les effets, puis les ombres.</span>
     </div>
   );
 }
