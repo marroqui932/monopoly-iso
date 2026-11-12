@@ -26,6 +26,11 @@ function useZoom() {
   return zoom;
 }
 
+/** `?lite` : graphismes allégés (sans ombres) pour les machines modestes. */
+const LITE = new URLSearchParams(window.location.search).has("lite");
+/** `?sans3d` : aucun rendu 3D (tests automatiques de l'interface et du réseau). */
+const NO_3D = new URLSearchParams(window.location.search).has("sans3d");
+
 export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
   const zoom = useZoom();
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -41,8 +46,10 @@ export function Scene({ game, quarter }: { game: GameState; quarter: number }) {
     c.update();
   }, [quarter]);
 
+  if (NO_3D) return <div style={{ position: "absolute", inset: 0 }} onClick={() => select(null)} />;
+
   return (
-    <Canvas shadows dpr={[1, 2]} onPointerMissed={() => select(null)}>
+    <Canvas shadows={!LITE} dpr={LITE ? 1 : [1, 2]} onPointerMissed={() => select(null)}>
       <color attach="background" args={["#bfe3f2"]} />
       <OrthographicCamera makeDefault position={camPos(0)} zoom={zoom} near={-100} far={200} />
       <OrbitControls

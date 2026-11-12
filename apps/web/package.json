@@ -15,6 +15,7 @@
     "@monopoly/engine": "workspace:*",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "peerjs": "^1.5.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.187.0",

@@ -6,7 +6,7 @@ import {
   type GameState,
   type Player,
 } from "@monopoly/engine";
-import { money, useGame } from "../store";
+import { money, useCanAct, useGame, useOffline } from "../store";
 import { useBusy } from "./GameView";
 
 export function ActionArea({ game }: { game: GameState }) {
@@ -33,6 +33,7 @@ function Who({ p }: { p: Player }) {
 function TurnBar({ game, busy }: { game: GameState; busy: boolean }) {
   const dispatch = useGame((s) => s.dispatch);
   const select = useGame((s) => s.select);
+  const canAct = useCanAct();
   const p = currentPlayer(game);
   const blocked = game.debts.length > 0 || game.mortgageDecisions.length > 0;
   const act = (a: Parameters<typeof dispatch>[1]) => dispatch(p.id, a);
@@ -42,6 +43,14 @@ function TurnBar({ game, busy }: { game: GameState; busy: boolean }) {
     content = <span style={{ color: "var(--muted)" }}>…</span>;
   } else if (p.bankrupt) {
     content = <span>En attente…</span>;
+  } else if (!canAct(p.id)) {
+    const what: Record<string, string> = {
+      roll: "lance les dés…",
+      buy: `réfléchit à l'achat de ${game.theme.squares[p.position]!.name}…`,
+      cardChoice: "choisit : payer ou tirer une carte…",
+      end: "termine son tour…",
+    };
+    content = <span style={{ color: "var(--muted)" }}>{what[game.phase] ?? "joue…"}</span>;
   } else {
     switch (game.phase) {
       case "roll":
@@ -125,6 +134,7 @@ function TurnBar({ game, busy }: { game: GameState; busy: boolean }) {
 
 function Debts({ game }: { game: GameState }) {
   const dispatch = useGame((s) => s.dispatch);
+  const canAct = useCanAct();
   if (game.debts.length === 0) return null;
   return (
     <>
@@ -137,20 +147,26 @@ function Debts({ game }: { game: GameState }) {
             <span>
               doit <b>{money(game, d.amount)}</b> à {creditor} ({d.reason}) · a {money(game, debtor.cash)}
             </span>
-            <button className="btn ok" disabled={debtor.cash < d.amount} onClick={() => dispatch(debtor.id, { type: "payDebt", debtId: d.id })}>
-              Payer
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                if (confirm(`${debtor.name} déclare faillite ? C'est définitif.`)) dispatch(debtor.id, { type: "declareBankruptcy" });
-              }}
-            >
-              Faire faillite
-            </button>
-            <span className="hint">
-              Pour trouver de l'argent : cliquez sur vos propriétés pour vendre des maisons ou hypothéquer, ou proposez un échange.
-            </span>
+            {canAct(debtor.id) ? (
+              <>
+                <button className="btn ok" disabled={debtor.cash < d.amount} onClick={() => dispatch(debtor.id, { type: "payDebt", debtId: d.id })}>
+                  Payer
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    if (confirm(`${debtor.name} déclare faillite ? C'est définitif.`)) dispatch(debtor.id, { type: "declareBankruptcy" });
+                  }}
+                >
+                  Faire faillite
+                </button>
+                <span className="hint">
+                  Pour trouver de l'argent : cliquez sur vos propriétés pour vendre des maisons ou hypothéquer, ou proposez un échange.
+                </span>
+              </>
+            ) : (
+              <span style={{ color: "var(--muted)" }}>cherche de l'argent…</span>
+            )}
           </div>
         );
       })}
@@ -160,6 +176,7 @@ function Debts({ game }: { game: GameState }) {
 
 function MortgageDecisions({ game }: { game: GameState }) {
   const dispatch = useGame((s) => s.dispatch);
+  const canAct = useCanAct();
   if (game.mortgageDecisions.length === 0) return null;
   return (
     <>
@@ -174,12 +191,18 @@ function MortgageDecisions({ game }: { game: GameState }) {
             <span>
               reçoit <b>{sq.name}</b> hypothéquée
             </span>
-            <button className="btn ok" disabled={p.cash < lift} onClick={() => dispatch(p.id, { type: "resolveMortgage", position: d.position, unmortgage: true })}>
-              Lever l'hypothèque ({money(game, lift)})
-            </button>
-            <button className="btn" onClick={() => dispatch(p.id, { type: "resolveMortgage", position: d.position, unmortgage: false })}>
-              Garder hypothéquée (10 % : {money(game, fee)})
-            </button>
+            {canAct(p.id) ? (
+              <>
+                <button className="btn ok" disabled={p.cash < lift} onClick={() => dispatch(p.id, { type: "resolveMortgage", position: d.position, unmortgage: true })}>
+                  Lever l'hypothèque ({money(game, lift)})
+                </button>
+                <button className="btn" onClick={() => dispatch(p.id, { type: "resolveMortgage", position: d.position, unmortgage: false })}>
+                  Garder hypothéquée (10 % : {money(game, fee)})
+                </button>
+              </>
+            ) : (
+              <span style={{ color: "var(--muted)" }}>décide…</span>
+            )}
           </div>
         );
       })}
@@ -195,7 +218,7 @@ function AuctionPanel({ game }: { game: GameState }) {
     <div className="panel auction">
       <h3>🔨 Enchères : {sq.name}</h3>
       <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-        Prix affiché : {"price" in sq ? money(game, sq.price) : "—"}. Chacun enchérit à son tour sur cet écran ; l'enchère se termine quand tous les autres ont passé.
+        Prix affiché : {"price" in sq ? money(game, sq.price) : "—"}. L'enchère se termine quand tous les autres ont passé.
       </div>
       <div className="best">
         {leader ? (
@@ -215,6 +238,9 @@ function AuctionPanel({ game }: { game: GameState }) {
 
 function Bidder({ game, playerId }: { game: GameState; playerId: string }) {
   const dispatch = useGame((s) => s.dispatch);
+  const canAct = useCanAct();
+  const offline = useOffline();
+  const mode = useGame((s) => s.mode);
   const a = game.auction!;
   const p = game.players.find((pl) => pl.id === playerId)!;
   const [custom, setCustom] = useState("");
@@ -229,6 +255,15 @@ function Bidder({ game, playerId }: { game: GameState; playerId: string }) {
       <span style={{ color: "var(--muted)", fontSize: "0.8rem", minWidth: 60 }}>{money(game, p.cash)}</span>
       {leading ? (
         <b style={{ color: "var(--ok)" }}>En tête</b>
+      ) : !canAct(p.id) ? (
+        <>
+          <span style={{ color: "var(--muted)" }}>{offline(p.id) ? "hors ligne" : "réfléchit…"}</span>
+          {mode === "host" && offline(p.id) && (
+            <button className="btn small" onClick={() => dispatch(p.id, { type: "passAuction" })}>
+              Passer pour lui
+            </button>
+          )}
+        </>
       ) : (
         <>
           {[1, 10, 50, 100].map((inc) => (

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { currentPlayer, groupHasBuildings, type GameState, type Player, type TradeSide } from "@monopoly/engine";
-import { money, useGame } from "../store";
+import { money, useCanAct, useGame } from "../store";
 
 const empty = (): TradeSide => ({ cash: 0, properties: [], jailCards: 0 });
 
 export function TradeModal({ game, onClose }: { game: GameState; onClose: () => void }) {
   const dispatch = useGame((s) => s.dispatch);
+  const me = useGame((s) => s.me);
   const alive = game.players.filter((p) => !p.bankrupt);
-  const [fromId, setFromId] = useState(currentPlayer(game).bankrupt ? alive[0]!.id : currentPlayer(game).id);
+  const [fromId, setFromId] = useState(me ?? (currentPlayer(game).bankrupt ? alive[0]!.id : currentPlayer(game).id));
   const [toId, setToId] = useState(alive.find((p) => p.id !== fromId)!.id);
   const [give, setGive] = useState<TradeSide>(empty);
   const [take, setTake] = useState<TradeSide>(empty);
@@ -33,14 +34,18 @@ export function TradeModal({ game, onClose }: { game: GameState; onClose: () => 
       <div className="panel modal" onClick={(e) => e.stopPropagation()}>
         <h2>🤝 Proposer un échange</h2>
         <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-          <select value={fromId} onChange={(e) => changeFrom(e.target.value)} aria-label="Qui propose">
-            {alive.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <span>propose à</span>
+          {me ? (
+            <b>Vous</b>
+          ) : (
+            <select value={fromId} onChange={(e) => changeFrom(e.target.value)} aria-label="Qui propose">
+              {alive.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <span>{me ? "proposez à" : "propose à"}</span>
           <select
             value={toId}
             onChange={(e) => {
@@ -153,6 +158,8 @@ function describe(game: GameState, side: TradeSide): string {
 
 export function TradeList({ game }: { game: GameState }) {
   const dispatch = useGame((s) => s.dispatch);
+  const me = useGame((s) => s.me);
+  const canAct = useCanAct();
   if (game.trades.length === 0) return null;
   return (
     <div className="panel trade-list">
@@ -166,15 +173,22 @@ export function TradeList({ game }: { game: GameState }) {
             <div>Donne : {describe(game, t.give)}</div>
             <div>Demande : {describe(game, t.take)}</div>
             <div className="btns">
-              <button className="btn small ok" onClick={() => dispatch(to.id, { type: "acceptTrade", tradeId: t.id })}>
-                {to.name} accepte
-              </button>
-              <button className="btn small" onClick={() => dispatch(to.id, { type: "rejectTrade", tradeId: t.id })}>
-                Refuser
-              </button>
-              <button className="btn small ghost" onClick={() => dispatch(from.id, { type: "cancelTrade", tradeId: t.id })}>
-                Retirer
-              </button>
+              {canAct(to.id) && (
+                <>
+                  <button className="btn small ok" onClick={() => dispatch(to.id, { type: "acceptTrade", tradeId: t.id })}>
+                    {me ? "Accepter" : `${to.name} accepte`}
+                  </button>
+                  <button className="btn small" onClick={() => dispatch(to.id, { type: "rejectTrade", tradeId: t.id })}>
+                    Refuser
+                  </button>
+                </>
+              )}
+              {canAct(from.id) && (
+                <button className="btn small ghost" onClick={() => dispatch(from.id, { type: "cancelTrade", tradeId: t.id })}>
+                  Retirer
+                </button>
+              )}
+              {!canAct(to.id) && !canAct(from.id) && <span style={{ color: "var(--muted)" }}>En attente de {to.name}…</span>}
             </div>
           </div>
         );

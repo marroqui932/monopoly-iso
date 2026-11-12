@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { netWorth, type GameState } from "@monopoly/engine";
 import { Scene } from "../scene/Scene";
-import { money, useGame } from "../store";
+import { money, useGame, useOffline } from "../store";
+import { NetBanner } from "./Lobby";
 import { nowSec } from "../anim";
 import { TOKENS } from "../tokens";
 import { ActionArea } from "./Actions";
@@ -27,9 +28,14 @@ export function GameView({ game }: { game: GameState }) {
   const tradeOpen = useGame((s) => s.tradeOpen);
   const setTradeOpen = useGame((s) => s.setTradeOpen);
   const quit = useGame((s) => s.quit);
+  const mode = useGame((s) => s.mode);
+  const lobby = useGame((s) => s.lobby);
+  const me = useGame((s) => s.me);
+  const iAmOut = !!me && !!game.players.find((p) => p.id === me)?.bankrupt;
 
   return (
     <div className="game">
+      <NetBanner />
       <Scene game={game} quarter={quarter} />
 
       <div className="overlay topbar panel">
@@ -46,13 +52,20 @@ export function GameView({ game }: { game: GameState }) {
           {` · Banque : ${game.bank.houses} 🏠 ${game.bank.hotels} 🏨`}
         </span>
         <TimeLeft game={game} />
-        <button className="btn small" onClick={() => setTradeOpen(true)} disabled={game.phase === "gameOver"}>
+        {lobby && mode !== "local" && <span className="round">Salle {lobby.code}</span>}
+        <button className="btn small" onClick={() => setTradeOpen(true)} disabled={game.phase === "gameOver" || iAmOut}>
           🤝 Échanger
         </button>
         <button
           className="btn small ghost"
           onClick={() => {
-            if (confirm("Revenir au menu ? La partie reste sauvegardée sur cet appareil.")) quit();
+            const msg =
+              mode === "host"
+                ? "Quitter ? La partie sera en pause pour tout le monde. Vous pourrez rouvrir la salle depuis l'accueil."
+                : mode === "client"
+                  ? "Quitter la salle ? Vous pourrez revenir avec le même code."
+                  : "Revenir au menu ? La partie reste sauvegardée sur cet appareil.";
+            if (confirm(msg)) quit();
           }}
         >
           Menu
@@ -93,6 +106,10 @@ function TimeLeft({ game }: { game: GameState }) {
 
 function Players({ game }: { game: GameState }) {
   const select = useGame((s) => s.select);
+  const offline = useOffline();
+  const mode = useGame((s) => s.mode);
+  const me = useGame((s) => s.me);
+  const dispatch = useGame((s) => s.dispatch);
   return (
     <div className="overlay players">
       {game.players.map((p, i) => {
@@ -106,12 +123,30 @@ function Players({ game }: { game: GameState }) {
             style={{ borderLeftColor: p.color }}
           >
             <div className="name">
-              <span>{p.name}</span>
+              <span>
+                {p.name}
+                {p.id === me && <span style={{ color: "var(--muted)", fontWeight: 500 }}> (vous)</span>}
+              </span>
               <span style={{ color: "var(--muted)", fontWeight: 500, fontSize: "0.8rem" }}>
                 {TOKENS.find((t) => t.id === p.token)?.label}
               </span>
             </div>
             <div className="cash">{p.bankrupt ? "Faillite" : money(game, p.cash)}</div>
+            {!p.bankrupt && offline(p.id) && (
+              <div className="offline">
+                ● hors ligne
+                {mode === "host" && game.phase !== "gameOver" && (
+                  <button
+                    className="btn small ghost"
+                    onClick={() => {
+                      if (confirm(`Faire abandonner ${p.name} ? Ses propriétés seront remises aux enchères.`)) dispatch(p.id, { type: "forfeit" });
+                    }}
+                  >
+                    Faire abandonner
+                  </button>
+                )}
+              </div>
+            )}
             {!p.bankrupt && (
               <div className="meta">
                 {p.inJail && <span>🔒 En prison</span>}
@@ -221,7 +256,7 @@ function GameOver({ game }: { game: GameState }) {
           ))}
         </ol>
         <button className="btn primary big" onClick={quit}>
-          Nouvelle partie
+          Retour à l'accueil
         </button>
       </div>
     </div>

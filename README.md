@@ -18,7 +18,7 @@ apps/web          Le jeu dans le navigateur (Vite + React + React Three Fiber)
 - [x] **Étape 1 : moteur de règles complet**, testé
 - [x] **Étape 2 : plateau 3D isométrique** (pions, maisons, hôtels, dés animés)
 - [x] **Étape 3 : partie locale jouable** sur un seul écran, sauvegarde automatique
-- [ ] Étape 4 : multijoueur en ligne (hôte dans le navigateur)
+- [x] **Étape 4 : multijoueur en ligne** (hôte dans le navigateur, code de salon, reconnexion automatique)
 - [ ] Étape 5 : interface complète (enchères, constructions, hypothèques, échanges)
 - [ ] Étape 6 : animations et sons
 - [ ] Étape 7 : sauvegarde / reprise, modes de fin de partie
@@ -75,6 +75,23 @@ Chaque push sur `main` lance les tests, construit le jeu et le publie sur GitHub
 (`.github/workflows/pages.yml`). Réglage à faire une seule fois sur GitHub :
 **Settings → Pages → Build and deployment → Source : GitHub Actions**.
 Le jeu est alors disponible sur https://marroqui932.github.io/monopoly-iso/
+
+## Jouer en ligne
+
+1. Un joueur clique sur **Créer une salle** et envoie le lien (ou le code à 5 lettres) aux autres.
+2. Les autres ouvrent le lien, choisissent un pseudo et cliquent sur **Rejoindre**.
+3. L'hôte règle la fin de partie et lance.
+
+L'onglet de l'hôte fait tourner la partie : s'il le ferme, la partie se met en pause ; il peut la
+rouvrir depuis l'accueil (**Rouvrir la salle**) et les autres se reconnectent tout seuls. Un invité qui
+recharge sa page revient directement dans la partie. L'hôte peut faire abandonner un joueur parti
+pour de bon, ou passer pour lui pendant une enchère.
+
+La mise en relation passe par le serveur public gratuit de PeerJS ; les échanges de jeu se font ensuite
+directement entre navigateurs (WebRTC).
+
+Paramètres d'adresse utiles : `?lite` (graphismes allégés, sans ombres), `?sans3d` (aucun rendu 3D,
+pour les tests automatiques), `?peer=hote:port` (serveur de signalisation PeerJS local).
 
 ## Développement
 

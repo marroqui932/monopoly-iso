@@ -9,7 +9,7 @@ import {
   unmortgageError,
   type GameState,
 } from "@monopoly/engine";
-import { money, useGame } from "../store";
+import { money, useCanAct, useGame } from "../store";
 
 const DESCRIPTIONS: Record<string, string> = {
   go: "Recevez votre salaire à chaque passage.",
@@ -23,6 +23,7 @@ const DESCRIPTIONS: Record<string, string> = {
 export function Deed({ game, position }: { game: GameState; position: number }) {
   const dispatch = useGame((s) => s.dispatch);
   const select = useGame((s) => s.select);
+  const canAct = useCanAct();
   const sq = game.theme.squares[position]!;
   const prop = game.properties[position];
   const cur = game.theme.currency;
@@ -117,7 +118,7 @@ export function Deed({ game, position }: { game: GameState; position: number }) 
             <span>À vendre : {money(game, sq.price)}</span>
           )}
         </div>
-        {ownerId && game.phase !== "gameOver" && (
+        {ownerId && canAct(ownerId) && game.phase !== "gameOver" && (
           <div className="btns">
             {sq.kind === "street" &&
               btn(prop.houses === 4 ? "Construire un hôtel" : "Construire une maison", buildError(game, ownerId, position), () =>
