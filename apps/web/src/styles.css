@@ -117,7 +117,7 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 .topbar { top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; align-items: center; }
 .topbar .round { padding: 0 10px; color: var(--muted); font-size: 0.9rem; }
 
-.players { top: 12px; left: 12px; width: 230px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 24px); overflow: auto; }
+.players { top: 12px; left: 12px; width: 250px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - 24px); overflow: auto; }
 .player-card { padding: 10px 12px; border-left: 6px solid; transition: transform 0.2s; }
 .player-card.current { transform: translateX(6px); box-shadow: 0 0 0 3px #ffd166, var(--shadow); }
 .player-card.bankrupt { opacity: 0.45; }
@@ -125,13 +125,20 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; ba
 .player-card .name { font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
 .player-card .cash { font-size: 1.15rem; font-weight: 800; }
 .player-card .meta { font-size: 0.8rem; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
-.owned { display: flex; gap: 4px; margin-top: 8px; align-items: flex-start; flex-wrap: wrap; }
-.owned-col { display: flex; flex-direction: column; gap: 2px; padding: 2px; border-radius: 5px; border: 2px solid transparent; }
+.owned { display: flex; gap: 2px; margin-top: 8px; align-items: flex-start; }
+.owned-col { display: flex; flex-direction: column; gap: 2px; padding: 1px; border-radius: 5px; border: 2px solid transparent; }
 .owned-col.full { border-color: #ffb703; background: #fff3c4; }
-.slot { width: 15px; height: 11px; border-radius: 3px; border: 1.5px dashed #ced4da; background: transparent; padding: 0; cursor: pointer; position: relative; }
+.slot { width: 14px; height: 11px; border-radius: 3px; border: 1.5px dashed #ced4da; background: transparent; padding: 0; cursor: pointer; position: relative; }
 .slot.mine { border: 1px solid rgba(0, 0, 0, 0.2); }
 .slot.mortgaged { opacity: 0.3; }
 .slot .houses { position: absolute; inset: 0; font-size: 8px; line-height: 9px; font-weight: 800; color: #fff; text-shadow: 0 0 2px #000; }
+
+.settings { top: 62px; left: 50%; transform: translateX(-50%); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; z-index: 12; min-width: 300px; }
+.settings-head { display: flex; justify-content: space-between; align-items: center; }
+.settings label { display: flex; gap: 8px; align-items: center; }
+.seg { display: flex; background: #eef0f3; border-radius: 10px; padding: 3px; gap: 3px; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.seg button.on { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
 
 /* ── Notifications centrales ─────────────── */
 .notes { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 15; width: min(560px, 92vw); }

@@ -65,10 +65,10 @@ export const DECOR: Record<string, Partial<Record<number, DecorKind>>> = {
 
 /** Échelle par décor (1,25 par défaut) : les grands décors occupent déjà toute la case. */
 export const DECOR_SCALE: Partial<Record<DecorKind, number>> = {
-  five: 1.1,
+  five: 1.05,
   rer: 1,
-  airport: 1.1,
-  airportTower: 1.1,
+  airport: 0.95,
+  airportTower: 0.95,
   bowling: 1.15,
 };
 

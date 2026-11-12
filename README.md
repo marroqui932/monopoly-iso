@@ -91,7 +91,7 @@ pour de bon, ou passer pour lui pendant une enchère.
 La mise en relation passe par le serveur public gratuit de PeerJS ; les échanges de jeu se font ensuite
 directement entre navigateurs (WebRTC).
 
-Paramètres d'adresse utiles : `?lite` (graphismes allégés, sans ombres), `?sans3d` (aucun rendu 3D,
+Le bouton ⚙️ permet de choisir la vue (3D isométrique ou de dessus), les décors et les ombres. Paramètres d'adresse utiles : `?lite` (sans ombres par défaut), `?sans3d` (aucun rendu 3D,
 pour les tests automatiques), `?peer=hote:port` (serveur de signalisation PeerJS local).
 
 ## Développement

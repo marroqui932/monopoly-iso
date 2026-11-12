@@ -5,6 +5,7 @@ import { money, useGame, useOffline } from "../store";
 import { NetBanner } from "./Lobby";
 import { nowSec } from "../anim";
 import { isMuted, setMuted } from "../sound";
+import { useSettings } from "../settings";
 import { TOKENS } from "../tokens";
 import { ActionArea } from "./Actions";
 import { Deed } from "./Deed";
@@ -26,6 +27,7 @@ export function useBusy(): boolean {
 export function GameView({ game }: { game: GameState }) {
   const [quarter, setQuarter] = useState(0);
   const [showLog, setShowLog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const selected = useGame((s) => s.selected);
   const tradeOpen = useGame((s) => s.tradeOpen);
@@ -67,6 +69,9 @@ export function GameView({ game }: { game: GameState }) {
         <button className={`btn small ${showLog ? "" : "ghost"}`} title="Journal de la partie" onClick={() => setShowLog((v) => !v)}>
           📜
         </button>
+        <button className={`btn small ${showSettings ? "" : "ghost"}`} title="Affichage" onClick={() => setShowSettings((v) => !v)}>
+          ⚙️
+        </button>
         <button
           className="btn small ghost"
           title={muted ? "Activer le son" : "Couper le son"}
@@ -94,6 +99,7 @@ export function GameView({ game }: { game: GameState }) {
       </div>
 
       <Players game={game} />
+      {showSettings && <DisplaySettings onClose={() => setShowSettings(false)} />}
 
       <div className="overlay side">
         {selected !== null && <Deed game={game} position={selected} />}
@@ -107,6 +113,36 @@ export function GameView({ game }: { game: GameState }) {
       {tradeOpen && <TradeModal game={game} onClose={() => setTradeOpen(false)} />}
       <CardPopupView game={game} />
       {game.phase === "gameOver" && <GameOver game={game} />}
+    </div>
+  );
+}
+
+function DisplaySettings({ onClose }: { onClose: () => void }) {
+  const { view, decor, shadows, set } = useSettings();
+  return (
+    <div className="overlay settings panel">
+      <div className="settings-head">
+        <b>Affichage</b>
+        <button className="btn small ghost" onClick={onClose} aria-label="Fermer">
+          ✕
+        </button>
+      </div>
+      <div className="seg">
+        <button className={view === "iso" ? "on" : ""} onClick={() => set({ view: "iso" })}>
+          🧊 Vue 3D
+        </button>
+        <button className={view === "top" ? "on" : ""} onClick={() => set({ view: "top" })}>
+          ⬛ Vue de dessus
+        </button>
+      </div>
+      <label>
+        <input type="checkbox" checked={decor} onChange={(e) => set({ decor: e.target.checked })} />
+        Décors 3D sur les cases
+      </label>
+      <label>
+        <input type="checkbox" checked={shadows} onChange={(e) => set({ shadows: e.target.checked })} />
+        Ombres (désactiver si ça rame)
+      </label>
     </div>
   );
 }
@@ -204,7 +240,7 @@ function OwnedColumns({ game, playerId, onSelect }: { game: GameState; playerId:
     const color =
       group === "railroad" ? "#343a40" : group === "utility" ? "#8d99ae" : game.theme.groupColors[group];
     return { group, positions, color };
-  }).filter((col) => col.positions.some((pos) => game.properties[pos]?.owner === playerId));
+  });
 
   return (
     <div className="owned">

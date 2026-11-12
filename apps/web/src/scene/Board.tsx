@@ -1,9 +1,10 @@
 import { Text } from "@react-three/drei";
 import { useState } from "react";
 import type { GameState, Square } from "@monopoly/engine";
-import { CELL_H, cellLayout, HALF } from "../layout";
+import { CELL_H, cellLayout, HALF, JAIL_CELL } from "../layout";
 import { useGame } from "../store";
 import { DECOR, DECOR_SCALE, Decor } from "./Decor";
+import { useSettings } from "../settings";
 import fontBold from "@fontsource/rubik/files/rubik-latin-700-normal.woff?url";
 import fontBlack from "@fontsource/rubik/files/rubik-latin-800-normal.woff?url";
 import fontMedium from "@fontsource/rubik/files/rubik-latin-500-normal.woff?url";
@@ -146,7 +147,8 @@ function Label({ text, z, size = 0.115, color = INK, font = FONTS.bold }: { text
 
 function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: number }) {
   const cur = game.theme.currency;
-  const decor = DECOR[game.theme.id]?.[pos];
+  const showDecor = useSettings((s) => s.decor);
+  const decor = showDecor ? DECOR[game.theme.id]?.[pos] : undefined;
   if (decor && (sq.kind === "street" || sq.kind === "railroad" || sq.kind === "utility")) {
     const street = sq.kind === "street";
     return (
@@ -158,7 +160,7 @@ function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: numb
           </mesh>
         )}
         <Label text={sq.name.toUpperCase()} z={street ? -0.43 : -0.74} size={0.1} />
-        <group position={[0, TOP, street ? 0.14 : 0.04]} scale={DECOR_SCALE[decor] ?? 1.25}>
+        <group position={[0, TOP, street ? 0.38 : 0.3]} scale={DECOR_SCALE[decor] ?? 1.1}>
           <Decor kind={decor} />
         </group>
         <Label text={`${sq.price} ${cur}`} z={0.81} size={0.12} font={FONTS.medium} />
@@ -220,25 +222,31 @@ function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: numb
   }
 }
 
+/** Coins : repère diagonal (−z vers le centre). Titre en haut, icône au milieu, pions en bas. */
 function CornerContent({ sq }: { sq: Square }) {
+  const title = (text: string, size: number, color = INK) => (
+    <Text font={FONTS.black} fontSize={size} maxWidth={1.25} position={[0, TOP, -0.68]} rotation={FLAT} color={color} anchorX="center" anchorY="middle" textAlign="center" lineHeight={1}>
+      {text}
+    </Text>
+  );
   switch (sq.kind) {
     case "go":
       return (
         <group>
-          <Text font={FONTS.black} fontSize={0.36} position={[0, TOP, -0.2]} rotation={FLAT} color="#d62828" anchorX="center" anchorY="middle">
-            DÉPART
-          </Text>
-          <Text font={FONTS.medium} fontSize={0.11} maxWidth={1.5} position={[0, TOP, 0.2]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle" textAlign="center">
+          {title(sq.name.toUpperCase(), 0.3, "#d62828")}
+          <Text font={FONTS.medium} fontSize={0.11} position={[0, TOP, -0.46]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle">
             Recevez votre salaire en passant
           </Text>
-          <mesh position={[0.1, TOP + 0.02, 0.62]} rotation={[0, Math.PI / 2, 0]} castShadow>
-            <coneGeometry args={[0.18, 0.4, 3]} />
-            <meshStandardMaterial color="#d62828" />
-          </mesh>
-          <mesh position={[-0.35, TOP + 0.02, 0.62]} castShadow>
-            <boxGeometry args={[0.6, 0.04, 0.12]} />
-            <meshStandardMaterial color="#d62828" />
-          </mesh>
+          <group position={[0, TOP + 0.02, -0.06]} rotation={[0, Math.PI / 2, 0]}>
+            <mesh position={[0, 0, 0.3]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <coneGeometry args={[0.13, 0.26, 3]} />
+              <meshStandardMaterial color="#d62828" />
+            </mesh>
+            <mesh position={[0, 0, -0.05]} castShadow>
+              <boxGeometry args={[0.1, 0.04, 0.5]} />
+              <meshStandardMaterial color="#d62828" />
+            </mesh>
+          </group>
         </group>
       );
     case "jail":
@@ -246,30 +254,30 @@ function CornerContent({ sq }: { sq: Square }) {
     case "freeParking":
       return (
         <group>
-          <Text font={FONTS.black} fontSize={0.26} position={[0, TOP, -0.45]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle" textAlign="center" maxWidth={1.6}>
-            PARC GRATUIT
-          </Text>
-          <Car />
+          {title(sq.name.toUpperCase(), 0.22)}
+          <group position={[0, 0, -0.2]} scale={0.85}>
+            <Car />
+          </group>
         </group>
       );
     case "goToJail":
       return (
         <group>
-          <Text font={FONTS.black} fontSize={0.22} position={[0, TOP, -0.45]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle" textAlign="center" maxWidth={1.6}>
-            ALLEZ EN PRISON
-          </Text>
-          <mesh position={[0, TOP + 0.15, 0.25]} castShadow>
-            <cylinderGeometry args={[0.28, 0.32, 0.3, 8]} />
-            <meshStandardMaterial color="#1d3557" />
-          </mesh>
-          <mesh position={[0, TOP + 0.02, 0.38]} castShadow>
-            <cylinderGeometry args={[0.38, 0.38, 0.04, 8]} />
-            <meshStandardMaterial color="#14213d" />
-          </mesh>
-          <mesh position={[0, TOP + 0.24, 0.53]} castShadow>
-            <boxGeometry args={[0.14, 0.12, 0.03]} />
-            <meshStandardMaterial color="#ffd166" metalness={0.5} roughness={0.3} />
-          </mesh>
+          {title(sq.name.toUpperCase(), 0.2)}
+          <group position={[0, TOP, -0.2]}>
+            <mesh position={[0, 0.15, 0]} castShadow>
+              <cylinderGeometry args={[0.2, 0.23, 0.24, 8]} />
+              <meshStandardMaterial color="#1d3557" />
+            </mesh>
+            <mesh position={[0, 0.02, 0.06]} castShadow>
+              <cylinderGeometry args={[0.28, 0.28, 0.04, 8]} />
+              <meshStandardMaterial color="#14213d" />
+            </mesh>
+            <mesh position={[0, 0.2, 0.2]} castShadow>
+              <boxGeometry args={[0.1, 0.09, 0.03]} />
+              <meshStandardMaterial color="#ffd166" metalness={0.5} roughness={0.3} />
+            </mesh>
+          </group>
         </group>
       );
     default:
@@ -277,29 +285,42 @@ function CornerContent({ sq }: { sq: Square }) {
   }
 }
 
-/** Coin prison : le coin est en repère « bas-gauche » ; la cellule est côté centre. */
+/** Coin prison, repère aligné sur le plateau : cellule côté centre (x > −0,3, z < 0,3), « simple visite » autour. */
 function JailCorner() {
-  // Groupe tourné de −π/4 dans Cell : on revient à un repère aligné sur le plateau.
+  const { x0, z1 } = JAIL_CELL;
+  const w = 1 - x0;
+  const d = z1 + 1;
   return (
     <group rotation={[0, Math.PI / 4, 0]}>
-      <mesh position={[0.4, TOP + 0.01, -0.4]} receiveShadow>
-        <boxGeometry args={[1.15, 0.02, 1.15]} />
+      <mesh position={[(x0 + 1) / 2, TOP + 0.01, (z1 - 1) / 2]} receiveShadow>
+        <boxGeometry args={[w - 0.04, 0.02, d - 0.04]} />
         <meshStandardMaterial color="#f4a259" />
       </mesh>
-      {[-0.1, 0.12, 0.34, 0.56, 0.78].map((x) => (
-        <mesh key={x} position={[x + 0.02, TOP + 0.25, 0.17]} castShadow>
-          <cylinderGeometry args={[0.025, 0.025, 0.5, 6]} />
+      {/* Barreaux sur les deux côtés donnant sur la « simple visite » */}
+      {Array.from({ length: 7 }, (_, i) => x0 + 0.08 + (i * (w - 0.16)) / 6).map((x) => (
+        <mesh key={`h${x}`} position={[x, TOP + 0.2, z1]} castShadow>
+          <cylinderGeometry args={[0.018, 0.018, 0.38, 6]} />
           <meshStandardMaterial color="#495057" metalness={0.6} roughness={0.4} />
         </mesh>
       ))}
-      <mesh position={[0.4, TOP + 0.5, 0.17]} castShadow>
-        <boxGeometry args={[1.0, 0.04, 0.05]} />
+      {Array.from({ length: 7 }, (_, i) => -0.92 + (i * (d - 0.16)) / 6).map((z) => (
+        <mesh key={`v${z}`} position={[x0, TOP + 0.2, z]} castShadow>
+          <cylinderGeometry args={[0.018, 0.018, 0.38, 6]} />
+          <meshStandardMaterial color="#495057" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      <mesh position={[(x0 + 1) / 2, TOP + 0.39, z1]} castShadow>
+        <boxGeometry args={[w, 0.03, 0.04]} />
         <meshStandardMaterial color="#495057" metalness={0.6} roughness={0.4} />
       </mesh>
-      <Text font={FONTS.black} fontSize={0.17} position={[0.4, TOP + 0.04, -0.75]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle">
+      <mesh position={[x0, TOP + 0.39, (z1 - 1) / 2]} castShadow>
+        <boxGeometry args={[0.04, 0.03, d]} />
+        <meshStandardMaterial color="#495057" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <Text font={FONTS.black} fontSize={0.15} position={[(x0 + 1) / 2, TOP + 0.03, -0.88]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle">
         PRISON
       </Text>
-      <Text font={FONTS.bold} fontSize={0.13} position={[-0.15, TOP, 0.72]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle">
+      <Text font={FONTS.bold} fontSize={0.15} position={[0.1, TOP, 0.66]} rotation={FLAT} color={INK} anchorX="center" anchorY="middle">
         SIMPLE VISITE
       </Text>
     </group>
@@ -403,7 +424,7 @@ function Chest() {
 
 function Car() {
   return (
-    <group position={[0, TOP, 0.3]} rotation={[0, -0.4, 0]}>
+    <group position={[0, TOP, 0]} rotation={[0, -0.4, 0]}>
       <mesh position={[0, 0.12, 0]} castShadow>
         <boxGeometry args={[0.8, 0.16, 0.4]} />
         <meshStandardMaterial color="#e63946" />

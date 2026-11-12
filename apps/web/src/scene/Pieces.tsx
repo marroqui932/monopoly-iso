@@ -88,32 +88,65 @@ export function Pawns({ game }: { game: GameState }) {
   );
 }
 
-/** Anneau de couleur sous le pion ; le joueur actif a un grand anneau lumineux et une flèche. */
+const RING_Y = CELL_H + 0.012;
+
+/** Anneau sous chaque pion ; le joueur actif a un grand anneau, un faisceau lumineux et une flèche. */
 function Highlight({ color, active }: { color: string; active: boolean }) {
+  const beam = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+      }),
+    [color],
+  );
+  if (!active) {
+    return (
+      <group>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y, 0]}>
+          <ringGeometry args={[0.155, 0.185, 28]} />
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
+          <circleGeometry args={[0.155, 28]} />
+          <meshBasicMaterial color={color} toneMapped={false} />
+        </mesh>
+      </group>
+    );
+  }
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CELL_H + 0.012, 0]}>
-        <ringGeometry args={active ? [0.2, 0.3, 32] : [0.17, 0.215, 24]} />
-        <meshBasicMaterial color={color} transparent opacity={active ? 1 : 0.75} toneMapped={false} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y, 0]}>
+        <ringGeometry args={[0.36, 0.41, 40]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
-      {active && (
-        <>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CELL_H + 0.01, 0]}>
-            <circleGeometry args={[0.2, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.3} toneMapped={false} />
-          </mesh>
-          <group position={[0, CELL_H + 0.85, 0]}>
-            <mesh rotation={[Math.PI, 0, 0]} castShadow>
-              <coneGeometry args={[0.16, 0.3, 4]} />
-              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
-            </mesh>
-            <mesh position={[0, 0.25, 0]}>
-              <boxGeometry args={[0.09, 0.22, 0.09]} />
-              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
-            </mesh>
-          </group>
-        </>
-      )}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
+        <ringGeometry args={[0.25, 0.36, 40]} />
+        <meshBasicMaterial color={color} toneMapped={false} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, RING_Y + 0.001, 0]}>
+        <circleGeometry args={[0.25, 40]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.7} toneMapped={false} />
+      </mesh>
+      {/* Faisceau lumineux */}
+      <mesh position={[0, CELL_H + 1.1, 0]} material={beam}>
+        <cylinderGeometry args={[0.16, 0.3, 2.2, 20, 1, true]} />
+      </mesh>
+      {/* Flèche */}
+      <group position={[0, CELL_H + 1.3, 0]}>
+        <mesh rotation={[Math.PI, 0, 0]} castShadow>
+          <coneGeometry args={[0.22, 0.38, 4]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
+        </mesh>
+        <mesh position={[0, 0.32, 0]}>
+          <boxGeometry args={[0.12, 0.3, 0.12]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -128,7 +161,9 @@ function Pawn({ player, slot, active }: { player: Player; slot: number; active: 
     duration: number;
     hop: boolean;
   } | null>(null);
-  const init = pawnSpot(player.position, slot, player.inJail);
+  // Position de départ figée : ensuite, seul l'animateur déplace le pion
+  // (sinon React le téléporte à l'arrivée avant l'animation).
+  const init = useRef(pawnSpot(player.position, slot, player.inJail)).current;
   const playerRef = useRef(player);
   playerRef.current = player;
 
@@ -187,7 +222,7 @@ function Pawn({ player, slot, active }: { player: Player; slot: number; active: 
   return (
     <group ref={ref} position={[init[0], 0, init[1]]}>
       <Highlight color={player.color} active={active} />
-      <group position={[0, CELL_H, 0]} scale={active ? 1.2 : 1}>
+      <group position={[0, CELL_H, 0]} scale={active ? 1.75 : 1.4}>
         <TokenMesh token={player.token} color={player.color} />
       </group>
     </group>

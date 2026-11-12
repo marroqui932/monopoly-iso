@@ -49,23 +49,38 @@ export function localToBoard(pos: number, lx: number, lz: number): [number, numb
   return [c.x + lx * cos + lz * sin, c.z - lx * sin + lz * cos];
 }
 
+/** Point du repère « diagonal » d'un coin (celui du contenu affiché : −z vers le centre du plateau). */
+export function cornerToBoard(pos: number, lx: number, lz: number): [number, number] {
+  const c = cellLayout(pos);
+  const cos = Math.cos(c.rot);
+  const sin = Math.sin(c.rot);
+  return [c.x + lx * cos + lz * sin, c.z - lx * sin + lz * cos];
+}
+
+/** Prison : repère aligné sur le plateau, x vers le centre, −z vers le centre. */
+export const JAIL_CELL = { x0: -0.3, z1: 0.3 }; // la cellule couvre x ∈ [−0,3 ; 1] et z ∈ [−1 ; 0,3]
+
 /** Emplacement d'un pion sur une case (6 places pour 6 joueurs). */
 export function pawnSpot(pos: number, slot: number, inJail: boolean): [number, number] {
   const col = (slot % 3) - 1;
   const row = Math.floor(slot / 3);
   if (pos === 10) {
+    const c = cellLayout(10);
     if (inJail) {
-      // Dans la cellule (partie intérieure du coin).
-      return [-5.1 + col * 0.36, 5.3 - row * 0.4];
+      // Dans la cellule orange.
+      return [c.x + 0.35 + col * 0.33, c.z - 0.38 + row * 0.38];
     }
-    // « Simple visite » : le long des bords extérieurs.
+    // « Simple visite » : bande de gauche, deux colonnes.
     const visit: [number, number][] = [
-      [-6.15, 6.15], [-5.45, 6.15], [-4.8, 6.15], [-6.15, 5.45], [-6.15, 4.8], [-5.85, 5.85],
+      [-0.8, -0.72], [-0.5, -0.72], [-0.8, -0.3], [-0.5, -0.3], [-0.8, 0.12], [-0.5, 0.12],
     ];
-    return visit[slot]!;
+    const [vx, vz] = visit[slot]!;
+    return [c.x + vx, c.z + vz];
   }
   if (cellLayout(pos).corner) {
-    return localToBoard(pos, col * 0.5, 0.15 + (row - 0.5) * 0.6);
+    // Zone réservée aux pions : côté extérieur du coin, sous le titre et l'icône.
+    return cornerToBoard(pos, col * 0.36, row === 0 ? 0.42 : 0.78);
   }
-  return localToBoard(pos, col * 0.28, 0.25 + row * 0.45);
+  // Côté centre de la case (le décor occupe le côté extérieur).
+  return localToBoard(pos, col * 0.3, -0.48 + row * 0.4);
 }
