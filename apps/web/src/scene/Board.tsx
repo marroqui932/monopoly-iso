@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { GameState, Square } from "@monopoly/engine";
 import { CELL_H, cellLayout, HALF } from "../layout";
 import { useGame } from "../store";
+import { DECOR, DECOR_SCALE, Decor } from "./Decor";
 import fontBold from "@fontsource/rubik/files/rubik-latin-700-normal.woff?url";
 import fontBlack from "@fontsource/rubik/files/rubik-latin-800-normal.woff?url";
 import fontMedium from "@fontsource/rubik/files/rubik-latin-500-normal.woff?url";
@@ -100,7 +101,7 @@ function Cell({ pos, sq, game }: { pos: number; sq: Square; game: GameState }) {
         <boxGeometry args={[layout.width - 0.04, CELL_H, layout.depth - 0.04]} />
         <meshStandardMaterial color={selected ? "#ffe9a8" : hover ? CELL_HOVER : CELL_COLOR} roughness={0.85} />
       </mesh>
-      {layout.corner ? <CornerContent sq={sq} /> : <EdgeContent sq={sq} game={game} />}
+      {layout.corner ? <CornerContent sq={sq} /> : <EdgeContent sq={sq} game={game} pos={pos} />}
       {owner && (
         <mesh position={[0, CELL_H + 0.01, 0.9]} castShadow>
           <boxGeometry args={[0.86, 0.04, 0.14]} />
@@ -143,8 +144,27 @@ function Label({ text, z, size = 0.115, color = INK, font = FONTS.bold }: { text
   );
 }
 
-function EdgeContent({ sq, game }: { sq: Square; game: GameState }) {
+function EdgeContent({ sq, game, pos }: { sq: Square; game: GameState; pos: number }) {
   const cur = game.theme.currency;
+  const decor = DECOR[game.theme.id]?.[pos];
+  if (decor && (sq.kind === "street" || sq.kind === "railroad" || sq.kind === "utility")) {
+    const street = sq.kind === "street";
+    return (
+      <>
+        {street && (
+          <mesh position={[0, CELL_H + 0.015, -0.75]} castShadow>
+            <boxGeometry args={[0.96, 0.03, 0.44]} />
+            <meshStandardMaterial color={game.theme.groupColors[sq.group]} roughness={0.6} />
+          </mesh>
+        )}
+        <Label text={sq.name.toUpperCase()} z={street ? -0.43 : -0.74} size={0.1} />
+        <group position={[0, TOP, street ? 0.14 : 0.04]} scale={DECOR_SCALE[decor] ?? 1.25}>
+          <Decor kind={decor} />
+        </group>
+        <Label text={`${sq.price} ${cur}`} z={0.81} size={0.12} font={FONTS.medium} />
+      </>
+    );
+  }
   switch (sq.kind) {
     case "street":
       return (
