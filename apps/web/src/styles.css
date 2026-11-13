@@ -196,6 +196,8 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
   box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
+.avatar svg { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35)); }
+.avatar.small { width: 26px; height: 26px; }
 .player-card .who-block { flex: 1; min-width: 0; }
 .player-card .name { font-weight: 600; display: flex; justify-content: space-between; gap: 6px; font-size: 0.95rem; }
 .player-card .name span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -310,6 +312,11 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
 .trade-list { padding: 12px 14px; font-size: 0.86rem; }
 .trade-list h3 { margin: 0 0 6px; font-size: 0.95rem; }
 .trade-item { border-top: 1px solid var(--line); padding: 8px 0; line-height: 1.4; }
+.drafting { border-color: rgba(255, 179, 71, 0.6); box-shadow: 0 0 22px rgba(255, 179, 71, 0.25), var(--shadow); }
+.drafting .trade-item:first-child { border-top: 0; padding-top: 0; }
+.drafting-head { display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.drafting .pen { display: inline-block; margin-right: 6px; animation: pen-write 0.8s ease-in-out infinite alternate; }
+@keyframes pen-write { from { transform: rotate(-12deg) translateX(-1px); } to { transform: rotate(10deg) translateX(2px); } }
 .trade-item .btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 
 .gameover { text-align: center; position: relative; z-index: 1; animation: victory-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
@@ -341,15 +348,25 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
 .seg button.on { background: rgba(255, 255, 255, 0.14); color: var(--text); }
 
 /* ── Notifications centrales ─────────────── */
-.notes { position: absolute; top: 19%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 15; width: min(580px, 92vw); }
+.notes { position: absolute; top: 19%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: none; z-index: 15; width: min(620px, 92vw); }
+.notes .note { pointer-events: auto; cursor: pointer; font-family: inherit; position: relative; overflow: hidden; }
+/* Mini chrono : une barre qui se vide en 3 s */
+.timer {
+  position: absolute; left: 0; bottom: 0; height: 4px; width: 100%;
+  background: currentColor; opacity: 0.55; transform-origin: left;
+  animation: timer-run linear forwards;
+}
+@keyframes timer-run { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.card-popup { position: relative; }
+.card-popup .timer { color: #e8811a; height: 5px; }
 .note {
   background: var(--glass-strong);
-  border: 1px solid var(--line);
+  border: 2px solid rgba(255, 255, 255, 0.18);
   color: var(--text);
-  padding: 11px 20px;
-  border-radius: 14px;
-  font-weight: 600;
-  font-size: 1.04rem;
+  padding: 14px 24px 16px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 1.15rem;
   box-shadow: var(--shadow);
   display: flex; align-items: center; gap: 10px; text-align: center;
   animation-name: note-life; animation-timing-function: ease; animation-fill-mode: both;
@@ -368,10 +385,11 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--sodium); width
   animation-name: turn-life;
 }
 @keyframes note-life {
-  0% { opacity: 0; transform: translateY(14px) scale(0.94); }
-  8% { opacity: 1; transform: translateY(0) scale(1); }
-  85% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-10px); }
+  0% { opacity: 0; transform: scale(0.5); }
+  7% { opacity: 1; transform: scale(1.1); }
+  12% { transform: scale(1); }
+  88% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.92) translateY(-8px); }
 }
 @keyframes turn-life {
   0% { opacity: 0; transform: scale(0.4) rotate(-6deg); }

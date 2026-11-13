@@ -116,6 +116,8 @@ function sensibleAction(s: GameState): [PlayerId, Action] {
     return chance(50) ? [t.to, { type: "acceptTrade", tradeId: t.id }] : [t.to, { type: "rejectTrade", tradeId: t.id }];
   }
 
+  if (s.phase === "order") return [s.orderQueue[0]!, { type: "rollOrder" }];
+
   const cur = currentPlayer(s);
   // Actions libres : construire, échanger, hypothéquer.
   if (chance(15)) {
@@ -162,6 +164,7 @@ function chaosAction(s: GameState): [PlayerId, Action] {
   const pos = randomInt(rnd, 0, 39);
   const actions: Action[] = [
     { type: "roll" },
+    { type: "rollOrder" },
     { type: "buy" },
     { type: "declineBuy" },
     { type: "bid", amount: randomInt(rnd, -5, 2000) },
@@ -190,7 +193,7 @@ function chaosAction(s: GameState): [PlayerId, Action] {
 
 function playGame(seed: number, nPlayers: number, maxRounds: number | null) {
   rnd.rng = seed * 7919;
-  let s = createGame(parisTheme, players(nPlayers), { maxRounds, freeParkingJackpot: seed % 3 === 0 }, seed, 0);
+  let s = createGame(parisTheme, players(nPlayers), { maxRounds, freeParkingJackpot: seed % 3 === 0, bankruptToBank: seed % 4 === 0 }, seed, 0);
   checkInvariants(s);
   let steps = 0;
   while (s.phase !== "gameOver" && steps < 6000) {

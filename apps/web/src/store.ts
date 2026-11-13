@@ -17,7 +17,7 @@ import { buildFeedback, makeNote, type Note } from "./feedback";
 import { play } from "./sound";
 import { loadMedia } from "./media";
 import { buildFx, useFx } from "./fx";
-import { ClientNet, HostNet, newRoomCode, type HostMsg, type Lobby, type NetStatus, type Profile } from "./net";
+import { ClientNet, HostNet, newRoomCode, type HostMsg, type Lobby, type NetStatus, type Profile, type TradeDraft } from "./net";
 import { PLAYER_COLORS, TOKENS } from "./tokens";
 
 const LOCAL_SAVE = "monopoly-iso:partie";
@@ -51,6 +51,10 @@ interface Store {
 
   /** Notifications affichées au centre de l'écran. */
   notes: Note[];
+  /** Échanges en cours de préparation par les autres joueurs (en ligne). */
+  drafts: Record<PlayerId, TradeDraft>;
+  /** Partage mon brouillon d'échange avec les autres (null = fermé). */
+  setMyDraft(draft: TradeDraft | null): void;
   selected: number | null;
   card: CardPopup | null;
   tradeOpen: boolean;
@@ -257,17 +261,33 @@ export const useGame = create<Store>((set, get) => {
         const err = hostApply(clientId, action);
         if (err) host?.send(clientId, { t: "error", text: err });
       },
+      onDraft(clientId, draft) {
+        applyDraft(clientId, draft);
+        host?.broadcast({ t: "draft", from: clientId, draft });
+      },
       onLeave(clientId) {
         setOnline(clientId, false);
+        applyDraft(clientId, null);
+        host?.broadcast({ t: "draft", from: clientId, draft: null });
       },
     });
     host.start();
+  }
+
+  function applyDraft(from: PlayerId, draft: TradeDraft | null) {
+    const drafts = { ...get().drafts };
+    if (draft) drafts[from] = draft;
+    else delete drafts[from];
+    set({ drafts });
   }
 
   // ── Invité ──
 
   function onHostMessage(msg: HostMsg) {
     switch (msg.t) {
+      case "draft":
+        if (msg.from !== get().me) applyDraft(msg.from, msg.draft);
+        break;
       case "lobby":
         set({ lobby: msg.lobby });
         break;
@@ -292,10 +312,17 @@ export const useGame = create<Store>((set, get) => {
     net: null,
     rejected: null,
     notes: [],
+    drafts: {},
     selected: null,
     card: null,
     tradeOpen: false,
     busyUntil: 0,
+
+    setMyDraft(draft) {
+      const { mode, me } = get();
+      if (mode === "client") client?.send({ t: "draft", draft });
+      else if (mode === "host" && me) host?.broadcast({ t: "draft", from: me, draft });
+    },
 
     startGame(players, options, themeId) {
       teardownNet();
@@ -398,6 +425,7 @@ export const useGame = create<Store>((set, get) => {
     },
 
     quit() {
+      set({ drafts: {} });
       teardownNet();
       setUrlRoom(null);
       if (get().mode === "client") saveProfile({ lastRoom: "" });

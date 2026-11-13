@@ -35,7 +35,7 @@ function audio(): AudioContext | null {
   try {
     ctx = new AudioContext();
     master = ctx.createGain();
-    master.gain.value = 0.5;
+    master.gain.value = 0.32;
     master.connect(ctx.destination);
   } catch {
     ctx = null;
@@ -145,7 +145,11 @@ function playFile(urls: string[], delay: number) {
     const src = a.createBufferSource();
     src.buffer = buf;
     const g = a.createGain();
-    g.gain.value = 1.6;
+    g.gain.value = 1.0;
+    // Mixé en mono : un fichier enregistré plus fort d'un côté s'entend des deux.
+    g.channelCount = 1;
+    g.channelCountMode = "explicit";
+    g.channelInterpretation = "speakers";
     src.connect(g).connect(master);
     src.start(Math.max(a.currentTime, startAt));
   });

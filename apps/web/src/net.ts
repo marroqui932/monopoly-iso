@@ -5,7 +5,7 @@
 // Le serveur public de PeerJS ne sert qu'à mettre les navigateurs en contact.
 
 import Peer, { type DataConnection, type PeerOptions } from "peerjs";
-import type { Action, GameEvent, GameOptions, GameState, PlayerId } from "@monopoly/engine";
+import type { Action, GameEvent, GameOptions, GameState, PlayerId, TradeSide } from "@monopoly/engine";
 
 const PREFIX = "monopoly-iso-v1-";
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -66,13 +66,22 @@ const PING_EVERY = 3000;
 /** Sans nouvelles depuis ce délai, la connexion est considérée comme morte. */
 const DEAD_AFTER = 10000;
 
+/** Échange en cours de préparation (visible par tous en direct). */
+export interface TradeDraft {
+  to: PlayerId;
+  give: TradeSide;
+  take: TradeSide;
+}
+
 export type ClientMsg =
   | { t: "ping" }
+  | { t: "draft"; draft: TradeDraft | null }
   | { t: "hello"; clientId: string; profile: Profile }
   | { t: "action"; action: Action };
 
 export type HostMsg =
   | { t: "ping" }
+  | { t: "draft"; from: PlayerId; draft: TradeDraft | null }
   | { t: "lobby"; lobby: Lobby }
   | { t: "state"; state: GameState; events: GameEvent[] }
   | { t: "error"; text: string }
@@ -90,6 +99,7 @@ export interface HostHandlers {
   onStatus(s: NetStatus): void;
   onHello(clientId: string, profile: Profile): void;
   onAction(clientId: string, action: Action): void;
+  onDraft(clientId: string, draft: TradeDraft | null): void;
   onLeave(clientId: string): void;
 }
 
@@ -171,6 +181,8 @@ export class HostNet {
         this.h.onHello(clientId, msg.profile);
       } else if (msg.t === "action" && clientId) {
         this.h.onAction(clientId, msg.action);
+      } else if (msg.t === "draft" && clientId) {
+        this.h.onDraft(clientId, msg.draft);
       }
     });
     let left = false;

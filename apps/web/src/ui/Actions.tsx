@@ -45,6 +45,7 @@ function TurnBar({ game, busy }: { game: GameState; busy: boolean }) {
     content = <span>En attente…</span>;
   } else if (!canAct(p.id)) {
     const what: Record<string, string> = {
+      order: "lance les dés pour l'ordre de jeu…",
       roll: "lance les dés…",
       buy: `réfléchit à l'achat de ${game.theme.squares[p.position]!.name}…`,
       cardChoice: "choisit : payer ou tirer une carte…",
@@ -53,6 +54,16 @@ function TurnBar({ game, busy }: { game: GameState; busy: boolean }) {
     content = <span style={{ color: "var(--muted)" }}>{what[game.phase] ?? "joue…"}</span>;
   } else {
     switch (game.phase) {
+      case "order":
+        content = (
+          <>
+            <span>Qui commence ? Le plus gros score joue en premier.</span>
+            <button className="btn primary big" onClick={() => act({ type: "rollOrder" })} autoFocus>
+              🎲 Lancer pour l'ordre
+            </button>
+          </>
+        );
+        break;
       case "roll":
         content = p.inJail ? (
           <>

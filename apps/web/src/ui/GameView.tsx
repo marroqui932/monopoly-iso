@@ -8,9 +8,10 @@ import { isMuted, setMuted } from "../sound";
 import { useSettings } from "../settings";
 import { useMedia } from "../media";
 import { TOKENS } from "../tokens";
+import { TokenIcon } from "./TokenIcon";
 import { ActionArea } from "./Actions";
 import { Deed } from "./Deed";
-import { TradeList, TradeModal } from "./Trade";
+import { TradeDrafts, TradeList, TradeModal } from "./Trade";
 
 /** Vrai tant que les animations (dés, pions) ne sont pas finies. */
 export function useBusy(): boolean {
@@ -104,6 +105,7 @@ export function GameView({ game }: { game: GameState }) {
 
       <div className="overlay side">
         {selected !== null && <Deed game={game} position={selected} />}
+        <TradeDrafts game={game} />
         <TradeList game={game} />
         {showLog && <Log game={game} />}
       </div>
@@ -162,7 +164,7 @@ function DisplaySettings({ onClose }: { onClose: () => void }) {
 
 /** Peut-on ouvrir la fenêtre d'échange ? (à son tour, ou endetté) */
 export function canTrade(game: GameState, me: string | null): boolean {
-  if (game.phase === "gameOver") return false;
+  if (game.phase === "gameOver" || game.phase === "order") return false;
   const cur = currentPlayer(game);
   if (me === null) return !cur.bankrupt || game.debts.length > 0;
   const mine = game.players.find((p) => p.id === me);
@@ -203,8 +205,8 @@ function Players({ game }: { game: GameState }) {
           >
             {i === game.currentPlayer && game.phase !== "gameOver" && !p.bankrupt && <span className="playing">À son tour</span>}
             <div className="head">
-              <span className="avatar" style={{ background: p.color }}>
-                {p.name.trim().charAt(0).toUpperCase() || "?"}
+              <span className="avatar" style={{ background: p.color }} title={TOKENS.find((t) => t.id === p.token)?.label}>
+                <TokenIcon token={p.token} />
               </span>
               <div className="who-block">
                 <div className="name">
@@ -230,6 +232,11 @@ function Players({ game }: { game: GameState }) {
                     Faire abandonner
                   </button>
                 )}
+              </div>
+            )}
+            {game.phase === "order" && game.orderRolls[p.id] && (
+              <div className="meta">
+                <span>🎲 {game.orderRolls[p.id]!.join(" puis ")}</span>
               </div>
             )}
             {!p.bankrupt && (p.inJail || p.jailCards.length > 0) && (
@@ -345,6 +352,14 @@ function CardPopupView({ game }: { game: GameState }) {
     const id = setTimeout(() => force((n) => n + 1), wait * 1000 + 20);
     return () => clearTimeout(id);
   }, [card, wait]);
+  // La carte se ferme toute seule au bout de 3 s (ou au clic).
+  const shown = !!card && wait <= 0;
+  const cardId = card?.id;
+  useEffect(() => {
+    if (!shown) return;
+    const id = setTimeout(closeCard, POPUP_SECONDS * 1000);
+    return () => clearTimeout(id);
+  }, [shown, cardId, closeCard]);
   if (!card || wait > 0) return null;
   const who = game.players.find((p) => p.id === card.player);
   const isChance = card.deck === "chance";
@@ -365,6 +380,7 @@ function CardPopupView({ game }: { game: GameState }) {
         <button className="btn primary" onClick={closeCard} autoFocus>
           OK
         </button>
+        <span className="timer" style={{ animationDuration: `${POPUP_SECONDS}s` }} />
       </div>
     </div>
   );
@@ -384,28 +400,37 @@ function CardText({ text }: { text: string }) {
   return <p>{text}</p>;
 }
 
-const NOTE_DURATION = 3.2;
+/** Durée d'affichage des notifications et des cartes, sauf clic avant. */
+export const POPUP_SECONDS = 3;
 
-/** Notifications au centre de l'écran. */
+/** Notifications au centre de l'écran : un clic les ferme, sinon elles partent au bout de 3 s. */
 function Notifications() {
   const notes = useGame((s) => s.notes);
+  const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const [, force] = useState(0);
   const now = nowSec();
-  const visible = notes.filter((n) => n.showAt <= now && now < n.showAt + NOTE_DURATION).slice(-4);
-  const pending = notes.some((n) => now < n.showAt + NOTE_DURATION);
+  const visible = notes.filter((n) => n.showAt <= now && now < n.showAt + POPUP_SECONDS && !dismissed.has(n.id)).slice(-4);
+  const pending = notes.some((n) => now < n.showAt + POPUP_SECONDS && !dismissed.has(n.id));
   useEffect(() => {
     if (!pending) return;
-    const id = setTimeout(() => force((x) => x + 1), 200);
+    const id = setTimeout(() => force((x) => x + 1), 150);
     return () => clearTimeout(id);
   });
   if (visible.length === 0) return null;
   return (
     <div className="notes">
       {visible.map((n) => (
-        <div key={n.id} className={`note ${n.kind}`} style={{ animationDuration: `${NOTE_DURATION}s` }}>
+        <button
+          key={n.id}
+          className={`note ${n.kind}`}
+          style={{ animationDuration: `${POPUP_SECONDS}s` }}
+          onClick={() => setDismissed((d) => new Set(d).add(n.id))}
+          title="Cliquer pour fermer"
+        >
           {n.color && <span className="dot" style={{ background: n.color }} />}
-          {n.text}
-        </div>
+          <span>{n.text}</span>
+          <span className="timer" style={{ animationDuration: `${POPUP_SECONDS}s` }} />
+        </button>
       ))}
     </div>
   );

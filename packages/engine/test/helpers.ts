@@ -11,7 +11,7 @@ export function players(n: number): NewPlayer[] {
 
 /** Partie de test : ordre des joueurs fixé (p0, p1, …). */
 export function newGame(n = 2, options: Partial<GameOptions> = {}): GameState {
-  const s = createGame(parisTheme, players(n), options, 42, NOW);
+  const s = createGame(parisTheme, players(n), { rollForOrder: false, ...options }, 42, NOW);
   s.players.sort((a, b) => a.id.localeCompare(b.id));
   s.currentPlayer = 0;
   return s;

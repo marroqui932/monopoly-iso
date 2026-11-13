@@ -67,6 +67,11 @@ export interface BoardTheme {
   id: string;
   /** Titre affiché sous « MONOPOLY ». */
   name: string;
+  /**
+   * Ce qu'on « fait » en tombant sur une propriété d'un autre joueur, à la place de
+   * « paie le loyer » (ex. « mange un kebab chez Taiba »). Clé : position de la case.
+   */
+  actions?: Record<number, string>;
   /** Nom des groupes de couleur (optionnel), affiché sur les fiches. */
   groupNames?: Partial<Record<ColorGroup, string>>;
   /** Symbole affiché après les montants, ex. "€" */
@@ -91,6 +96,10 @@ export interface GameOptions {
   timeLimitMs: number | null;
   totalHouses: number;
   totalHotels: number;
+  /** Lancer de dés au début pour décider l'ordre de jeu. */
+  rollForOrder: boolean;
+  /** Règle maison : les propriétés d'un joueur en faillite retournent toujours à la banque (aux enchères). */
+  bankruptToBank: boolean;
 }
 
 // ── État de la partie ────────────────────────────────────────
@@ -118,6 +127,8 @@ export interface PropertyState {
 }
 
 export type Phase =
+  /** Début de partie : chacun lance les dés pour décider de l'ordre de jeu. */
+  | "order"
   /** Le joueur courant doit lancer les dés (ou gérer la prison). */
   | "roll"
   /** Le joueur courant décide d'acheter ou non la case où il est. */
@@ -195,6 +206,10 @@ export interface GameState {
   decks: Record<DeckName, number[]>;
   currentPlayer: number;
   phase: Phase;
+  /** Lancers pour l'ordre de jeu (plusieurs en cas d'égalité). */
+  orderRolls: Record<PlayerId, number[]>;
+  /** Joueurs qui doivent encore lancer pour l'ordre. */
+  orderQueue: PlayerId[];
   dice: Dice | null;
   doublesCount: number;
   /** Le joueur rejoue après ce tour (double). */
@@ -221,6 +236,7 @@ export interface GameState {
 // ── Actions ──────────────────────────────────────────────────
 
 export type Action =
+  | { type: "rollOrder" }
   | { type: "roll" }
   | { type: "buy" }
   | { type: "declineBuy" }
@@ -255,7 +271,9 @@ export type GameEvent =
   | { type: "cardDrawn"; player: PlayerId; deck: DeckName; text: string }
   | { type: "cashChanged"; player: PlayerId; delta: number; reason: string }
   /** Paiement d'un joueur à un autre (to) ou à la banque (to = null). */
-  | { type: "paid"; from: PlayerId; to: PlayerId | null; amount: number; reason: string }
+  | { type: "paid"; from: PlayerId; to: PlayerId | null; amount: number; reason: string; position?: number }
+  | { type: "orderRolled"; player: PlayerId; total: number; tie: boolean }
+  | { type: "orderDecided"; order: PlayerId[] }
   | { type: "propertyBought"; player: PlayerId; position: number; price: number }
   | { type: "auctionStarted"; position: number }
   | { type: "auctionBid"; player: PlayerId; amount: number }

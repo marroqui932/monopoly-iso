@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { currentPlayer, groupHasBuildings, mortgageValue, type GameState, type Player, type TradeSide } from "@monopoly/engine";
 import { money, useCanAct, useGame } from "../store";
 
@@ -17,6 +17,14 @@ export function TradeModal({ game, onClose }: { game: GameState; onClose: () => 
 
   const from = game.players.find((p) => p.id === fromId)!;
   const to = game.players.find((p) => p.id === toId)!;
+
+  // En ligne : les autres voient l'échange se construire en direct.
+  const setMyDraft = useGame((s) => s.setMyDraft);
+  useEffect(() => {
+    const id = setTimeout(() => setMyDraft({ to: toId, give, take }), 120);
+    return () => clearTimeout(id);
+  }, [toId, give, take, setMyDraft]);
+  useEffect(() => () => setMyDraft(null), [setMyDraft]);
 
   const changeFrom = (id: string) => {
     setFromId(id);
@@ -115,7 +123,8 @@ function SideEditor({
           type="number"
           min={0}
           max={owner.cash}
-          value={side.cash}
+          value={side.cash || ""}
+          placeholder="0"
           onChange={(e) => onChange({ ...side, cash: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
         />
         <span style={{ color: "var(--muted)" }}>/ {money(game, owner.cash)}</span>
@@ -127,7 +136,8 @@ function SideEditor({
             type="number"
             min={0}
             max={owner.jailCards.length}
-            value={side.jailCards}
+            value={side.jailCards || ""}
+            placeholder="0"
             onChange={(e) => onChange({ ...side, jailCards: Math.max(0, Math.min(owner.jailCards.length, Math.floor(Number(e.target.value) || 0))) })}
           />
         </label>
@@ -155,7 +165,7 @@ function SideEditor({
   );
 }
 
-function describe(game: GameState, side: TradeSide): string {
+export function describe(game: GameState, side: TradeSide): string {
   const parts: string[] = [];
   if (side.cash > 0) parts.push(money(game, side.cash));
   for (const pos of side.properties) {
@@ -200,6 +210,33 @@ export function TradeList({ game }: { game: GameState }) {
               )}
               {!canAct(to.id) && !canAct(from.id) && <span style={{ color: "var(--muted)" }}>En attente de {to.name}…</span>}
             </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Les échanges que les autres sont en train de préparer, visibles en direct. */
+export function TradeDrafts({ game }: { game: GameState }) {
+  const drafts = useGame((s) => s.drafts);
+  const me = useGame((s) => s.me);
+  const entries = Object.entries(drafts).filter(([from]) => from !== me);
+  if (entries.length === 0) return null;
+  return (
+    <div className="panel trade-list drafting">
+      {entries.map(([fromId, d]) => {
+        const from = game.players.find((p) => p.id === fromId);
+        const to = game.players.find((p) => p.id === d.to);
+        if (!from || !to) return null;
+        return (
+          <div key={fromId} className="trade-item">
+            <div className="drafting-head">
+              <span className="pen">✍️</span>
+              <b>{from.name}</b>&nbsp;prépare un échange avec&nbsp;<b>{to.id === me ? "toi" : to.name}</b>
+            </div>
+            <div>Donne : {describe(game, d.give)}</div>
+            <div>Demande : {describe(game, d.take)}</div>
           </div>
         );
       })}

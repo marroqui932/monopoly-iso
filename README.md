@@ -54,8 +54,9 @@ const { state: next, events } = applyAction(state, "id-joueur", { type: "roll" }
 - **Échanges** (argent, propriétés, cartes prison) proposés pendant son tour (ou pour payer une dette) ; propriétés hypothéquées reçues : lever l'hypothèque ou payer 10 %
 - **Dettes** : si un joueur ne peut pas payer, il vend, hypothèque ou échange avant de régler, ou déclare faillite
 - **Faillite** envers un joueur (il récupère tout) ou envers la banque (propriétés remises aux enchères)
+- Ordre de jeu tiré aux dés en début de partie (les égalités relancent)
 - Fins de partie : dernier survivant, nombre de tours ou limite de temps (le plus gros patrimoine gagne)
-- Option « cagnotte du Parc gratuit » (règle maison, désactivée par défaut)
+- Options maison : cagnotte du Parc gratuit, propriétés d'un joueur en faillite toujours remises aux enchères
 
 Écart connu : un hôtel ne peut être revendu que si la banque a 4 maisons pour le remplacer.
 

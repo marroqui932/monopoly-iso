@@ -58,7 +58,7 @@ export function buildFeedback(
     switch (e.type) {
       case "diceRolled":
         sound("dice", at);
-        if (e.dice.a === e.dice.b) notes.push(makeNote(`🎲 Double ${e.dice.a} !`, "good", at + 0.9, color(e.player)));
+        if (e.dice.a === e.dice.b && !events.some((x) => x.type === "orderRolled")) notes.push(makeNote(`🎲 Double ${e.dice.a} !`, "good", at + 0.9, color(e.player)));
         break;
       case "turnStarted":
         if (you(e.player)) {
@@ -73,16 +73,26 @@ export function buildFeedback(
         }
         break;
       case "paid": {
-        const reason = e.reason ? ` (${e.reason})` : "";
-        if (e.to) {
-          const kind: NoteKind = you(e.to) ? "good" : you(e.from) ? "bad" : "info";
-          note(`${you(e.from) ? "Tu paies" : `${name(e.from)} paie`} ${fmt(e.amount)} à ${you(e.to) ? "toi" : name(e.to)}${reason}`, kind, e.from);
+        const action = e.position !== undefined ? state.theme.actions?.[e.position] : undefined;
+        const kind: NoteKind = e.to && you(e.to) ? "good" : you(e.from) ? "bad" : "info";
+        if (action && e.to) {
+          // « Karim mange un kebab chez Taiba : 14 € pour Ayman »
+          note(`${name(e.from)} ${action} : ${fmt(e.amount)} pour ${you(e.to) ? "toi" : name(e.to)}`, kind, e.from);
+        } else if (e.to) {
+          note(`${you(e.from) ? "Tu paies" : `${name(e.from)} paie`} ${fmt(e.amount)} à ${you(e.to) ? "toi" : name(e.to)} (${e.reason})`, kind, e.from);
         } else {
-          note(`${you(e.from) ? "Tu paies" : `${name(e.from)} paie`} ${fmt(e.amount)}${reason}`, you(e.from) ? "bad" : "info", e.from);
+          note(`${you(e.from) ? "Tu paies" : `${name(e.from)} paie`} ${fmt(e.amount)} (${e.reason})`, kind, e.from);
         }
-        sound(you(e.to) ? "coinIn" : "coinOut", at);
+        sound(e.to && you(e.to) ? "coinIn" : "coinOut", at);
         break;
       }
+      case "orderRolled":
+        notes.push(makeNote(`🎲 ${name(e.player)} fait ${e.total}`, "info", at + 0.9, color(e.player)));
+        if (e.tie) notes.push(makeNote("Égalité ! Les ex æquo relancent", "error", at + 1.3));
+        break;
+      case "orderDecided":
+        notes.push(makeNote(`Ordre de jeu : ${e.order.map((id) => name(id)).join(", ")}`, "good", at + 1.3));
+        break;
       case "passedGo":
         note(`${name(e.player)} passe par la case Départ : +${fmt(e.amount)}`, you(e.player) ? "good" : "info", e.player);
         sound("coinIn", at);

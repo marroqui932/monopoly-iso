@@ -58,6 +58,8 @@ export const DEFAULT_OPTIONS: GameOptions = {
   timeLimitMs: null,
   totalHouses: 32,
   totalHotels: 12,
+  rollForOrder: true,
+  bankruptToBank: false,
 };
 
 export const MIN_PLAYERS = 2;
@@ -97,7 +99,8 @@ export function createGame(
   });
 
   const rngHolder = { rng: seed | 0 };
-  const order = shuffle(rngHolder, players);
+  // Avec le lancer pour l'ordre, on garde l'ordre des places ; sinon, tirage au sort.
+  const order = opts.rollForOrder ? players.slice() : shuffle(rngHolder, players);
   const s: GameState = {
     version: 1,
     theme,
@@ -118,7 +121,9 @@ export function createGame(
       community: shuffle(rngHolder, theme.community.map((_, i) => i)),
     },
     currentPlayer: 0,
-    phase: "roll",
+    phase: opts.rollForOrder ? "order" : "roll",
+    orderRolls: {},
+    orderQueue: opts.rollForOrder ? order.map((p) => p.id) : [],
     dice: null,
     doublesCount: 0,
     extraRoll: false,
@@ -140,7 +145,8 @@ export function createGame(
   };
   const c: Ctx = { s, events: [], now };
   log(c, `La partie commence ! ${order.map((p) => p.name).join(", ")}.`);
-  log(c, `C'est au tour de ${currentPlayer(s).name}.`);
+  if (opts.rollForOrder) log(c, "Chacun lance les dés : le plus haut score commence.");
+  else log(c, `C'est au tour de ${currentPlayer(s).name}.`);
   return s;
 }
 
@@ -167,7 +173,12 @@ export function applyAction(
   if (!p) fail("Joueur inconnu.");
   if (p.bankrupt) fail("Vous avez fait faillite.");
 
+  if (s.phase === "order" && action.type !== "rollOrder") fail("Il faut d'abord tirer l'ordre de jeu.");
+
   switch (action.type) {
+    case "rollOrder":
+      doRollOrder(c, p);
+      break;
     case "roll":
       doRoll(c, p);
       break;
@@ -298,10 +309,11 @@ function charge(
   amount: number,
   reason: string,
   toPot = false,
+  position?: number,
 ): boolean {
   if (amount <= 0 || debtor.bankrupt) return true;
   if (debtor.cash >= amount) {
-    transfer(c, debtor, creditor, amount, reason, toPot);
+    transfer(c, debtor, creditor, amount, reason, toPot, position);
     return true;
   }
   const debt = {
@@ -318,9 +330,9 @@ function charge(
   return false;
 }
 
-function transfer(c: Ctx, from: Player, to: Player | null, amount: number, reason: string, toPot: boolean) {
+function transfer(c: Ctx, from: Player, to: Player | null, amount: number, reason: string, toPot: boolean, position?: number) {
   changeCash(c, from, -amount, reason);
-  c.events.push({ type: "paid", from: from.id, to: to?.id ?? null, amount, reason });
+  c.events.push({ type: "paid", from: from.id, to: to?.id ?? null, amount, reason, position });
   if (to) {
     changeCash(c, to, amount, reason);
     log(c, `${from.name} paie ${money(c, amount)} à ${to.name} (${reason}).`);
@@ -379,6 +391,56 @@ function doRoll(c: Ctx, p: Player) {
   }
   moveBy(c, p, total);
   land(c, p);
+}
+
+// ── Ordre de jeu ─────────────────────────────────────────────
+
+function compareRolls(a: number[], b: number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (b[i] ?? -1) - (a[i] ?? -1);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+function doRollOrder(c: Ctx, p: Player) {
+  const s = c.s;
+  if (s.phase !== "order") fail("L'ordre de jeu est déjà décidé.");
+  if (s.orderQueue[0] !== p.id) fail("Ce n'est pas à vous de lancer.");
+  const dice = { a: randomInt(s, 1, 6), b: randomInt(s, 1, 6) };
+  s.dice = dice;
+  const total = dice.a + dice.b;
+  (s.orderRolls[p.id] ??= []).push(total);
+  s.orderQueue.shift();
+  c.events.push({ type: "diceRolled", player: p.id, dice });
+  log(c, `${p.name} fait ${total} pour l'ordre de jeu.`);
+
+  if (s.orderQueue.length === 0) {
+    // Égalités : les joueurs concernés relancent.
+    const key = (id: PlayerId) => (s.orderRolls[id] ?? []).join(",");
+    const counts = new Map<string, number>();
+    for (const pl of s.players) counts.set(key(pl.id), (counts.get(key(pl.id)) ?? 0) + 1);
+    const tied = s.players.filter((pl) => counts.get(key(pl.id))! > 1).map((pl) => pl.id);
+    c.events.push({ type: "orderRolled", player: p.id, total, tie: tied.length > 0 });
+    if (tied.length > 0) {
+      s.orderQueue = tied;
+      log(c, `Égalité entre ${tied.map((id) => getPlayer(s, id)!.name).join(" et ")} : ils relancent.`);
+    } else {
+      const sorted = [...s.players].sort((a, b) => compareRolls(s.orderRolls[a.id] ?? [], s.orderRolls[b.id] ?? []));
+      s.players = sorted;
+      s.currentPlayer = 0;
+      s.phase = "roll";
+      s.dice = null;
+      c.events.push({ type: "orderDecided", order: sorted.map((pl) => pl.id) });
+      log(c, `Ordre de jeu : ${sorted.map((pl) => pl.name).join(", ")}.`);
+      c.events.push({ type: "turnStarted", player: sorted[0]!.id });
+      log(c, `C'est au tour de ${sorted[0]!.name}.`);
+      return;
+    }
+  } else {
+    c.events.push({ type: "orderRolled", player: p.id, total, tie: false });
+  }
+  s.currentPlayer = s.players.findIndex((pl) => pl.id === s.orderQueue[0]);
 }
 
 function passGo(c: Ctx, p: Player) {
@@ -480,7 +542,9 @@ function land(c: Ctx, p: Player) {
       const owner = getPlayer(s, prop.owner)!;
       const total = s.dice ? s.dice.a + s.dice.b : 0;
       const rent = rentFor(s, pos, total);
-      charge(c, p, owner, rent, `loyer de ${sq.name}`);
+      const action = s.theme.actions?.[pos];
+      if (action) log(c, `${p.name} ${action}.`);
+      charge(c, p, owner, rent, action ?? `loyer de ${sq.name}`, false, pos);
       return;
     }
   }
@@ -787,8 +851,9 @@ function doDeclareBankruptcy(c: Ctx, p: Player) {
  *   les hypothéquées) et cartes « Libéré de prison » ;
  * - envers la banque : les propriétés sont libérées puis mises aux enchères.
  */
-function goBankrupt(c: Ctx, p: Player, creditor: Player | null) {
+function goBankrupt(c: Ctx, p: Player, creditorArg: Player | null) {
   const s = c.s;
+  let creditor = creditorArg;
 
   for (const [key, prop] of Object.entries(s.properties)) {
     if (prop.owner !== p.id || prop.houses === 0) continue;
@@ -798,6 +863,13 @@ function goBankrupt(c: Ctx, p: Player, creditor: Player | null) {
     else s.bank.houses += prop.houses;
     changeCash(c, p, Math.floor((prop.houses * sq.houseCost) / 2), "liquidation");
     prop.houses = 0;
+  }
+
+  // Règle maison : le créancier touche l'argent, mais les propriétés vont aux enchères.
+  if (creditor && s.options.bankruptToBank) {
+    if (p.cash > 0) changeCash(c, creditor, p.cash, `faillite de ${p.name}`);
+    log(c, `${creditor.name} récupère l'argent de ${p.name} ; ses propriétés partent aux enchères.`);
+    creditor = null;
   }
 
   if (creditor) {

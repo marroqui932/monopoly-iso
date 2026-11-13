@@ -3,6 +3,7 @@ import { MIN_PLAYERS } from "@monopoly/engine";
 import { useGame } from "../store";
 import { inviteLink } from "../net";
 import { TOKENS } from "../tokens";
+import { TokenIcon } from "./TokenIcon";
 import { OptionsEditor, ThemePicker } from "./Options";
 import { MenuScene } from "../scene/Scene";
 
@@ -75,7 +76,9 @@ export function LobbyView() {
             </h2>
             {lobby.players.map((p) => (
               <div key={p.id} className="lobby-player">
-                <span className="dot" style={{ background: p.color, width: 16, height: 16 }} />
+                <span className="avatar small" style={{ background: p.color }}>
+                  <TokenIcon token={p.token} size={16} />
+                </span>
                 <b>{p.name}</b>
                 <span style={{ color: "var(--muted)" }}>{TOKENS.find((t) => t.id === p.token)?.label}</span>
                 {p.host && <span className="tag">hôte</span>}

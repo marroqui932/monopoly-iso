@@ -71,6 +71,14 @@ export function OptionsEditor({
           />
           Cagnotte du Parc gratuit (taxes et amendes vont au Parc gratuit)
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={!!options.bankruptToBank}
+            onChange={(e) => onChange({ ...options, bankruptToBank: e.target.checked })}
+          />
+          Faillite : le créancier prend l'argent, mais les propriétés repartent aux enchères
+        </label>
       </div>
     </fieldset>
   );

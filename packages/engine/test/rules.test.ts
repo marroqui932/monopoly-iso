@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyAction, createGame, GameError, parisTheme, rentFor, netWorth } from "../src";
-import { NOW, act, cardIndex, give, newGame, p, players, rollWith } from "./helpers";
+import { NOW, act, cardIndex, give, newGame, p, players, rigDice, rollWith } from "./helpers";
 
 describe("création de partie", () => {
   it("donne 1500 € à chacun et place tout le monde au départ", () => {
@@ -589,3 +589,57 @@ describe("plateau 3ajib Edition", () => {
     }
   });
 });
+
+describe("ordre de jeu aux dés", () => {
+  it("chacun lance, le plus haut commence, les égalités relancent", () => {
+    let s = createGame(parisTheme, players(3), {}, 5, NOW);
+    expect(s.phase).toBe("order");
+    expect(() => act(s, "p0", { type: "roll" })).toThrow("ordre de jeu");
+    expect(() => act(s, "p1", { type: "rollOrder" })).toThrow("pas à vous");
+    s = rollOrderWith(s, "p0", 2, 3); // 5
+    s = rollOrderWith(s, "p1", 6, 6); // 12
+    s = rollOrderWith(s, "p2", 1, 4); // 5 → égalité avec p0
+    expect(s.phase).toBe("order");
+    expect(s.orderQueue).toEqual(["p0", "p2"]);
+    s = rollOrderWith(s, "p0", 1, 1); // 2
+    s = rollOrderWith(s, "p2", 3, 3); // 6
+    expect(s.phase).toBe("roll");
+    expect(s.players.map((p) => p.id)).toEqual(["p1", "p2", "p0"]);
+    expect(s.currentPlayer).toBe(0);
+  });
+});
+
+describe("règle maison : faillite vers la banque", () => {
+  it("le créancier touche l'argent mais les propriétés partent aux enchères", () => {
+    let s = newGame(3, { bankruptToBank: true });
+    give(s, "p1", 37, 39);
+    give(s, "p0", 1);
+    p(s, "p0").cash = 10;
+    p(s, "p0").position = 34;
+    s = rollWith(s, "p0", 1, 2); // 37 : loyer 70
+    s = act(s, "p0", { type: "declareBankruptcy" });
+    expect(p(s, "p1").cash).toBe(1510);
+    expect(s.phase).toBe("auction");
+    expect(s.auction!.position).toBe(1);
+  });
+});
+
+describe("action selon la case", () => {
+  it("le loyer utilise le texte d'action du plateau", () => {
+    let s = newGame();
+    s.theme = { ...s.theme, actions: { 6: "mange un kebab chez Taiba" } };
+    give(s, "p1", 6);
+    const r = applyAction(rigDiceCopy(s, 2, 4), "p0", { type: "roll" }, { now: NOW });
+    const paid = r.events.find((e) => e.type === "paid");
+    expect(paid).toMatchObject({ type: "paid", reason: "mange un kebab chez Taiba", position: 6 });
+  });
+});
+
+function rigDiceCopy(s: ReturnType<typeof newGame>, a: number, b: number) {
+  const copy = structuredClone(s);
+  return rigDice(copy, a, b);
+}
+
+function rollOrderWith(s: ReturnType<typeof newGame>, id: string, a: number, b: number) {
+  return act(rigDice(structuredClone(s), a, b), id, { type: "rollOrder" });
+}
